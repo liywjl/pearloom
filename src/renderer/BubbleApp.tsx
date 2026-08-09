@@ -33,7 +33,7 @@ export function BubbleApp() {
       }
     };
     void start();
-    const offTick = window.loom.recui.onBubbleTick(setElapsedMs);
+    const offTick = window.pearloom.recui.onBubbleTick(setElapsedMs);
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((t) => t.stop());
@@ -59,7 +59,7 @@ export function BubbleApp() {
         <button
           className="bubble-stop"
           title="Stop recording"
-          onClick={() => void window.loom.recui.requestStop()}
+          onClick={() => void window.pearloom.recui.requestStop()}
         >
           ■
         </button>

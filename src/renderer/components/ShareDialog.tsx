@@ -25,8 +25,8 @@ export function ShareDialog({ recording, spaces, onClose, onShared }: Props) {
     setBusy(`Publishing to “${space.name}”…`);
     setError(null);
     try {
-      await window.loom.spaces.publish(recording.id, space.id);
-      const code = await window.loom.spaces.invite(space.id);
+      await window.pearloom.spaces.publish(recording.id, space.id);
+      const code = await window.pearloom.spaces.invite(space.id);
       setInvite({ spaceName: space.name, code });
       onShared();
     } catch (err) {
@@ -41,7 +41,7 @@ export function ShareDialog({ recording, spaces, onClose, onShared }: Props) {
     setBusy("Creating space…");
     setError(null);
     try {
-      const space = await window.loom.spaces.create(newSpaceName.trim());
+      const space = await window.pearloom.spaces.create(newSpaceName.trim());
       await publishTo(space);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -56,7 +56,7 @@ export function ShareDialog({ recording, spaces, onClose, onShared }: Props) {
           <>
             <h2>Shared to “{invite.spaceName}”</h2>
             <p className="muted">
-              Send this invite code to teammates. They paste it into LoomP2P
+              Send this invite code to teammates. They paste it into Pearloom
               (“Join space”) and sync directly from you — keep the app open
               while they join and download.
             </p>

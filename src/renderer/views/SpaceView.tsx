@@ -17,7 +17,7 @@ export function SpaceView({ spaceId, spaces, onOpen, onLeft }: Props) {
 
   const refresh = useCallback(async () => {
     try {
-      setShared(await window.loom.spaces.shared(spaceId));
+      setShared(await window.pearloom.spaces.shared(spaceId));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -26,7 +26,7 @@ export function SpaceView({ spaceId, spaces, onOpen, onLeft }: Props) {
 
   useEffect(() => {
     void refresh();
-    const off = window.loom.events.on("space-updated", (updatedId) => {
+    const off = window.pearloom.events.on("space-updated", (updatedId) => {
       if (updatedId === spaceId) void refresh();
     });
     return off;
@@ -56,7 +56,7 @@ export function SpaceView({ spaceId, spaces, onOpen, onLeft }: Props) {
             className="btn primary"
             onClick={async () => {
               try {
-                setInvite(await window.loom.spaces.invite(spaceId));
+                setInvite(await window.pearloom.spaces.invite(spaceId));
               } catch (err) {
                 setError(err instanceof Error ? err.message : String(err));
               }
@@ -72,7 +72,7 @@ export function SpaceView({ spaceId, spaces, onOpen, onLeft }: Props) {
                   `Leave “${space.name}”? You'll need a new invite to rejoin.`,
                 )
               ) {
-                await window.loom.spaces.leave(spaceId);
+                await window.pearloom.spaces.leave(spaceId);
                 onLeft();
               }
             }}

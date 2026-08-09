@@ -1,6 +1,6 @@
 {
-  "name": "loom-p2p",
-  "productName": "LoomP2P",
+  "name": "pearloom",
+  "productName": "Pearloom",
   "version": "0.1.0",
   "description": "P2P screen recording and feedback — a free, local-first Loom alternative built on the Pear stack",
   "main": "dist/main/index.js",
@@ -14,9 +14,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "prettier --check \"src/**/*.{ts,tsx,css,html}\"",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\"",
-    "package": "npm run build && electron-packager . LoomP2P --platform=darwin --out=out --overwrite --extend-info=build/Info.extend.plist --ignore=\"^/(src|tests|scripts|build|\\.claude)($|/)\" --ignore=\"\\.(ts|tsx|map)$\""
+    "package": "npm run build && electron-packager . Pearloom --platform=darwin --out=out --overwrite --icon=build/icon.icns --extend-info=build/Info.extend.plist --ignore=\"^/(src|tests|scripts|build|\\.claude)($|/)\" --ignore=\"\\.(ts|tsx|map)$\""
   },
-  "license": "Apache-2.0",
+  "license": "MIT",
   "devDependencies": {
     "@electron/packager": "^20.0.2",
     "@types/node": "^26.1.0",

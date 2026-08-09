@@ -64,19 +64,19 @@ export function PlayerView({ target, onBack }: Props) {
       : spaces.filter((s) => (localMeta?.sharedTo ?? []).includes(s.id));
 
   const refreshSpaces = useCallback(async () => {
-    setSpaces(await window.loom.spaces.list());
+    setSpaces(await window.pearloom.spaces.list());
   }, []);
 
   const refreshLocalMeta = useCallback(async () => {
     if (target.kind !== "local") return;
-    const all = await window.loom.recordings.list();
+    const all = await window.pearloom.recordings.list();
     const mine = all.find((m) => m.id === rec.id);
     if (mine) setLocalMeta(mine);
   }, [target.kind, rec.id]);
 
   useEffect(() => {
     void refreshSpaces();
-    const off = window.loom.events.on("spaces-changed", () => {
+    const off = window.pearloom.events.on("spaces-changed", () => {
       void refreshSpaces();
     });
     return off;
@@ -95,9 +95,9 @@ export function PlayerView({ target, onBack }: Props) {
     const load = async () => {
       try {
         if (target.kind === "local") {
-          setSrc(window.loom.recordings.playbackUrl(rec.id));
+          setSrc(window.pearloom.recordings.playbackUrl(rec.id));
         } else {
-          const url = await window.loom.spaces.playbackUrl(
+          const url = await window.pearloom.spaces.playbackUrl(
             target.recording.spaceId,
             target.recording.driveKey,
             target.recording.drivePath,
@@ -124,9 +124,9 @@ export function PlayerView({ target, onBack }: Props) {
     }
     try {
       const [cs, rs, ms] = await Promise.all([
-        window.loom.spaces.comments(feedbackSpaceId, rec.id),
-        window.loom.spaces.reactions(feedbackSpaceId, rec.id),
-        window.loom.spaces.members(feedbackSpaceId),
+        window.pearloom.spaces.comments(feedbackSpaceId, rec.id),
+        window.pearloom.spaces.reactions(feedbackSpaceId, rec.id),
+        window.pearloom.spaces.members(feedbackSpaceId),
       ]);
       setComments(cs);
       setReactions(rs);
@@ -138,7 +138,7 @@ export function PlayerView({ target, onBack }: Props) {
 
   useEffect(() => {
     void refreshFeedback();
-    const off = window.loom.events.on("space-updated", (id) => {
+    const off = window.pearloom.events.on("space-updated", (id) => {
       if (id === feedbackSpaceId) void refreshFeedback();
     });
     return off;
@@ -170,7 +170,7 @@ export function PlayerView({ target, onBack }: Props) {
   const react = async (emoji: string) => {
     if (!feedbackSpaceId) return;
     try {
-      await window.loom.spaces.react(feedbackSpaceId, {
+      await window.pearloom.spaces.react(feedbackSpaceId, {
         recordingId: rec.id,
         emoji,
         atMs: currentTimeMs(),
@@ -184,7 +184,7 @@ export function PlayerView({ target, onBack }: Props) {
   const showInvite = async () => {
     if (!feedbackSpaceId) return;
     try {
-      setInvite(await window.loom.spaces.invite(feedbackSpaceId));
+      setInvite(await window.pearloom.spaces.invite(feedbackSpaceId));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -573,7 +573,7 @@ function CommentsPanel(props: {
       } else if (atTime) {
         atMs = props.currentTimeMs();
       }
-      await window.loom.spaces.comment(props.spaceId, {
+      await window.pearloom.spaces.comment(props.spaceId, {
         recordingId: props.recordingId,
         text: text.trim(),
         atMs,
@@ -591,7 +591,7 @@ function CommentsPanel(props: {
 
   const toggleLike = async (c: CommentRecord) => {
     try {
-      await window.loom.spaces.setCommentLike(
+      await window.pearloom.spaces.setCommentLike(
         props.spaceId,
         props.recordingId,
         c.id,

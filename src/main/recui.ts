@@ -54,12 +54,12 @@ function refreshTrayMenu() {
       recording
         ? [
             { label: "■ Stop recording", click: requestStop },
-            { label: "Show LoomP2P", click: showApp },
+            { label: "Show Pearloom", click: showApp },
           ]
         : [
-            { label: "Open LoomP2P", click: showApp },
+            { label: "Open Pearloom", click: showApp },
             { type: "separator" },
-            { role: "quit", label: "Quit LoomP2P" },
+            { role: "quit", label: "Quit Pearloom" },
           ],
     ),
   );
@@ -74,7 +74,7 @@ export function initRecordingUi(d: Deps) {
   deps = d;
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle("🟣");
-  tray.setToolTip("LoomP2P");
+  tray.setToolTip("Pearloom");
   refreshTrayMenu();
 }
 

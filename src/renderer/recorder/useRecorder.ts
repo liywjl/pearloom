@@ -109,8 +109,8 @@ export function useRecorder(): RecorderApi {
   const refreshDevices = useCallback(async () => {
     try {
       // Ask for cam/mic consent up front so enumerateDevices returns labels.
-      await window.loom.capture.askAccess("camera");
-      await window.loom.capture.askAccess("microphone");
+      await window.pearloom.capture.askAccess("camera");
+      await window.pearloom.capture.askAccess("microphone");
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices
         .filter((d) => d.kind === "videoinput")
@@ -124,7 +124,7 @@ export function useRecorder(): RecorderApi {
           deviceId: d.deviceId,
           label: d.label || `Microphone ${i + 1}`,
         }));
-      const sources = await window.loom.capture.sources();
+      const sources = await window.pearloom.capture.sources();
       setState((s) => ({
         ...s,
         cameras,
@@ -154,7 +154,7 @@ export function useRecorder(): RecorderApi {
 
   useEffect(() => {
     refreshDevices();
-    window.loom.capture
+    window.pearloom.capture
       .clicksAvailable()
       .then((ok) => patch({ clicksAvailable: ok }));
   }, [refreshDevices]);
@@ -172,8 +172,8 @@ export function useRecorder(): RecorderApi {
     session.current.offKeys = null;
     session.current.offCursor?.();
     session.current.offCursor = null;
-    void window.loom.capture.clicksStop();
-    void window.loom.capture.cursorStop();
+    void window.pearloom.capture.clicksStop();
+    void window.pearloom.capture.cursorStop();
   };
 
   const start = useCallback(async () => {
@@ -185,7 +185,7 @@ export function useRecorder(): RecorderApi {
     }
     patch({ phase: "starting", error: null, elapsedMs: 0 });
     try {
-      await window.loom.capture.armSource(selectedSourceId);
+      await window.pearloom.capture.armSource(selectedSourceId);
       const screen = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: 30 },
         audio: false,
@@ -212,7 +212,10 @@ export function useRecorder(): RecorderApi {
       }
 
       const title = `Recording ${new Date().toLocaleString()}`;
-      const meta = await window.loom.recordings.begin(title, pickMimeType());
+      const meta = await window.pearloom.recordings.begin(
+        title,
+        pickMimeType(),
+      );
       session.current.recordingId = meta.id;
       session.current.startedAt = Date.now();
 
@@ -224,7 +227,7 @@ export function useRecorder(): RecorderApi {
           const id = session.current.recordingId;
           if (!id) return;
           session.current.pendingChunks = session.current.pendingChunks.then(
-            () => window.loom.recordings.chunk(id, chunk).catch(() => {}),
+            () => window.pearloom.recordings.chunk(id, chunk).catch(() => {}),
           );
         },
       });
@@ -251,15 +254,17 @@ export function useRecorder(): RecorderApi {
         });
 
         // The red cursor dot needs no permission — always on for screens.
-        await window.loom.capture.cursorStart();
-        session.current.offCursor = window.loom.capture.onCursorPos((pos) => {
-          session.current.compositor?.setCursor(toFrame(pos));
-        });
+        await window.pearloom.capture.cursorStart();
+        session.current.offCursor = window.pearloom.capture.onCursorPos(
+          (pos) => {
+            session.current.compositor?.setCursor(toFrame(pos));
+          },
+        );
 
         // Click rings + click/typing activity need the global hook.
-        const started = await window.loom.capture.clicksStart();
+        const started = await window.pearloom.capture.clicksStart();
         if (started) {
-          session.current.offClicks = window.loom.capture.onGlobalClick(
+          session.current.offClicks = window.pearloom.capture.onGlobalClick(
             (click) => {
               const { fx, fy } = toFrame(click);
               session.current.compositor?.addClick(fx, fy);
@@ -268,7 +273,7 @@ export function useRecorder(): RecorderApi {
               }
             },
           );
-          session.current.offKeys = window.loom.capture.onGlobalKey(() => {
+          session.current.offKeys = window.pearloom.capture.onGlobalKey(() => {
             pushActivity({ kind: "typing", atMs: elapsed() });
           });
         }
@@ -285,7 +290,7 @@ export function useRecorder(): RecorderApi {
     } catch (err) {
       cleanupStreams();
       if (session.current.recordingId) {
-        await window.loom.recordings
+        await window.pearloom.recordings
           .abort(session.current.recordingId)
           .catch(() => {});
         session.current.recordingId = null;
@@ -321,7 +326,7 @@ export function useRecorder(): RecorderApi {
     session.current.compositor = null;
     session.current.recordingId = null;
 
-    const meta = await window.loom.recordings.finalize(recordingId, {
+    const meta = await window.pearloom.recordings.finalize(recordingId, {
       durationMs,
       thumbnailDataUrl: thumbnail,
       activity: session.current.activity,
@@ -339,7 +344,7 @@ export function useRecorder(): RecorderApi {
   const setShowClicks = useCallback(async (on: boolean) => {
     if (on) {
       // May pop the macOS Accessibility consent dialog on first use.
-      const ok = await window.loom.capture.clicksRequestAccess();
+      const ok = await window.pearloom.capture.clicksRequestAccess();
       patch({ showClicks: true, clicksAvailable: ok });
     } else {
       patch({ showClicks: false });

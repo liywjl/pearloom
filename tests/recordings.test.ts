@@ -9,7 +9,7 @@ describe("RecordingStore", () => {
   let store: RecordingStore;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "loom-rec-"));
+    dir = await mkdtemp(join(tmpdir(), "pearloom-rec-"));
     store = new RecordingStore(dir);
     await store.ready();
   });

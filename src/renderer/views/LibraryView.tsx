@@ -65,13 +65,16 @@ export function LibraryView({
   const addTag = async (rec: RecordingMeta, tag: string) => {
     const clean = tag.trim().toLowerCase();
     if (!clean) return;
-    await window.loom.recordings.setTags(rec.id, [...(rec.tags ?? []), clean]);
+    await window.pearloom.recordings.setTags(rec.id, [
+      ...(rec.tags ?? []),
+      clean,
+    ]);
     setTagDraft("");
     onChanged();
   };
 
   const removeTag = async (rec: RecordingMeta, tag: string) => {
-    await window.loom.recordings.setTags(
+    await window.pearloom.recordings.setTags(
       rec.id,
       (rec.tags ?? []).filter((t) => t !== tag),
     );
@@ -159,7 +162,7 @@ export function LibraryView({
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    await window.loom.recordings.setTitle(
+                    await window.pearloom.recordings.setTitle(
                       rec.id,
                       title.trim() || rec.title,
                     );
@@ -262,7 +265,7 @@ export function LibraryView({
                         `Delete "${rec.title}"? The local file is removed; copies already shared to spaces remain with peers.`,
                       )
                     ) {
-                      await window.loom.recordings.remove(rec.id);
+                      await window.pearloom.recordings.remove(rec.id);
                       onChanged();
                     }
                   }}

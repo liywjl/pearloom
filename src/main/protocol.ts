@@ -6,17 +6,17 @@ import { parseRange } from "./http-range";
 import type { RecordingStore } from "./recordings";
 import type { P2PEngine } from "./p2p/engine";
 
-export const LOOM_SCHEME = "loom";
+export const PEARLOOM_SCHEME = "pearloom";
 
 /**
- * loom://media/recordings/<id> — streams a local recording with Range support
+ * pearloom://media/recordings/<id> — streams a local recording with Range support
  * so <video> can seek without loading the whole file.
  */
-export function registerLoomProtocol(
+export function registerPearloomProtocol(
   recordings: RecordingStore,
   _p2p: P2PEngine,
 ) {
-  protocol.handle(LOOM_SCHEME, async (request) => {
+  protocol.handle(PEARLOOM_SCHEME, async (request) => {
     const url = new URL(request.url);
     const parts = url.pathname.split("/").filter(Boolean);
     if (url.host !== "media" || parts[0] !== "recordings" || !parts[1]) {

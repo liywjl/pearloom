@@ -67,8 +67,8 @@ const api = {
     setTags: (id: string, tags: string[]): Promise<RecordingMeta> =>
       ipcRenderer.invoke("rec:set-tags", id, tags),
     remove: (id: string): Promise<void> => ipcRenderer.invoke("rec:remove", id),
-    /** Range-capable local playback URL served by the loom:// protocol. */
-    playbackUrl: (id: string): string => `loom://media/recordings/${id}`,
+    /** Range-capable local playback URL served by the pearloom:// protocol. */
+    playbackUrl: (id: string): string => `pearloom://media/recordings/${id}`,
   },
   profile: {
     get: (): Promise<Profile> => ipcRenderer.invoke("profile:get"),
@@ -167,6 +167,6 @@ const api = {
   },
 };
 
-export type LoomApi = typeof api;
+export type PearloomApi = typeof api;
 
-contextBridge.exposeInMainWorld("loom", api);
+contextBridge.exposeInMainWorld("pearloom", api);

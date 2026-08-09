@@ -20,7 +20,12 @@ export type Route =
   | { view: "player"; target: PlayerTarget; back: Route };
 
 export function App() {
-  const [route, setRoute] = useState<Route>({ view: "record" });
+  // `--view library` (screenshot/smoke-test helper) deep-links the start view.
+  const [route, setRoute] = useState<Route>(() =>
+    window.location.hash === "#library"
+      ? { view: "library" }
+      : { view: "record" },
+  );
   const [spaces, setSpaces] = useState<SpaceInfo[]>([]);
   const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
   const [profile, setProfile] = useState<Profile>({ name: "" });
@@ -35,20 +40,20 @@ export function App() {
     const was = prevPhase.current;
     prevPhase.current = recorder.phase;
     if (recorder.phase === "recording" && was !== "recording") {
-      void window.loom.recui.started(recorder.selectedCameraId);
+      void window.pearloom.recui.started(recorder.selectedCameraId);
     }
     if (
       recorder.phase === "idle" &&
       (was === "recording" || was === "saving")
     ) {
-      void window.loom.recui.stopped();
+      void window.pearloom.recui.stopped();
     }
   }, [recorder.phase, recorder.selectedCameraId]);
 
   const elapsedSec = Math.floor(recorder.elapsedMs / 1000);
   useEffect(() => {
     if (recorder.phase === "recording") {
-      void window.loom.recui.tick(recorder.elapsedMs);
+      void window.pearloom.recui.tick(recorder.elapsedMs);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsedSec, recorder.phase]);
@@ -68,26 +73,26 @@ export function App() {
     }
   };
   useEffect(
-    () => window.loom.recui.onRequestStop(() => void stopRef.current()),
+    () => window.pearloom.recui.onRequestStop(() => void stopRef.current()),
     [],
   );
 
   const refreshSpaces = useCallback(async () => {
-    setSpaces(await window.loom.spaces.list());
+    setSpaces(await window.pearloom.spaces.list());
   }, []);
   const refreshRecordings = useCallback(async () => {
-    setRecordings(await window.loom.recordings.list());
+    setRecordings(await window.pearloom.recordings.list());
   }, []);
 
   useEffect(() => {
     void refreshSpaces();
     void refreshRecordings();
-    window.loom.profile.get().then(setProfile);
-    const offSpaces = window.loom.events.on(
+    window.pearloom.profile.get().then(setProfile);
+    const offSpaces = window.pearloom.events.on(
       "spaces-changed",
       () => void refreshSpaces(),
     );
-    const offPeers = window.loom.events.on(
+    const offPeers = window.pearloom.events.on(
       "peers-changed",
       () => void refreshSpaces(),
     );
@@ -118,7 +123,7 @@ export function App() {
         profile={profile}
         onNavigate={setRoute}
         onProfileChange={async (name) =>
-          setProfile(await window.loom.profile.set({ name }))
+          setProfile(await window.pearloom.profile.set({ name }))
         }
         onSpacesChanged={refreshSpaces}
       />

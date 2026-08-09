@@ -1,6 +1,6 @@
 import { app, BrowserWindow, protocol } from "electron";
 import { join } from "node:path";
-import { registerLoomProtocol, LOOM_SCHEME } from "./protocol";
+import { registerPearloomProtocol, PEARLOOM_SCHEME } from "./protocol";
 import { RecordingStore } from "./recordings";
 import { registerIpcHandlers } from "./ipc";
 import { installDisplayMediaHandler, stopClickCapture } from "./capture";
@@ -10,7 +10,7 @@ import { P2PEngine } from "./p2p/engine";
 // Must run before app is ready.
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: LOOM_SCHEME,
+    scheme: PEARLOOM_SCHEME,
     privileges: {
       standard: true,
       secure: true,
@@ -41,7 +41,7 @@ function createWindow() {
     height: 820,
     minWidth: 960,
     minHeight: 640,
-    title: "LoomP2P",
+    title: "Pearloom",
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 16, y: 18 },
     backgroundColor: "#0f1117",
@@ -56,7 +56,12 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+  const viewIdx = process.argv.indexOf("--view");
+  const startView = viewIdx !== -1 ? process.argv[viewIdx + 1] : undefined;
+  mainWindow.loadFile(
+    join(__dirname, "../renderer/index.html"),
+    startView ? { hash: startView } : undefined,
+  );
   if (process.argv.includes("--devtools")) {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
@@ -91,6 +96,11 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // Packaged builds get the bundle icon; in dev, brand the dock manually.
+  if (!app.isPackaged && process.platform === "darwin") {
+    app.dock?.setIcon(join(__dirname, "../../build/icon.png"));
+  }
+
   const userData = app.getPath("userData");
   const recordings = new RecordingStore(join(userData, "recordings"));
   await recordings.ready();
@@ -103,7 +113,7 @@ app.whenReady().then(async () => {
   // The engine starts lazily; spaces are reopened on demand at first use.
   await p2p.ready();
 
-  registerLoomProtocol(recordings, p2p);
+  registerPearloomProtocol(recordings, p2p);
   installDisplayMediaHandler();
   registerIpcHandlers({ recordings, p2p, getWindow: () => mainWindow });
   initRecordingUi({ getWindow: () => mainWindow });

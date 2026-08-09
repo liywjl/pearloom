@@ -32,7 +32,7 @@ export function Sidebar({
     setBusy("Pairing with the space owner…");
     setError(null);
     try {
-      const space = await window.loom.spaces.join(code);
+      const space = await window.pearloom.spaces.join(code);
       setJoinOpen(false);
       onSpacesChanged();
       onNavigate({ view: "space", spaceId: space.id });
@@ -47,7 +47,7 @@ export function Sidebar({
     setBusy("Creating space…");
     setError(null);
     try {
-      const space = await window.loom.spaces.create(name);
+      const space = await window.pearloom.spaces.create(name);
       setCreateOpen(false);
       onSpacesChanged();
       onNavigate({ view: "space", spaceId: space.id });
@@ -61,7 +61,7 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="brand-dot" /> LoomP2P
+        <span className="brand-dot" /> Pearloom
       </div>
 
       <nav>

@@ -1,8 +1,8 @@
-import type { LoomApi } from "../preload/index";
+import type { PearloomApi } from "../preload/index";
 
 declare global {
   interface Window {
-    loom: LoomApi;
+    pearloom: PearloomApi;
   }
 }
 

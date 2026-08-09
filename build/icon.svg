@@ -1,0 +1,58 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b1f2e" />
+      <stop offset="0.55" stop-color="#0f1117" />
+      <stop offset="1" stop-color="#141024" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.65">
+      <stop offset="0" stop-color="#7c5cff" stop-opacity="0.35" />
+      <stop offset="0.7" stop-color="#7c5cff" stop-opacity="0.06" />
+      <stop offset="1" stop-color="#7c5cff" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="pear" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#cde26e" />
+      <stop offset="0.45" stop-color="#8fd977" />
+      <stop offset="1" stop-color="#3ecf8e" />
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8f73ff" />
+      <stop offset="1" stop-color="#7c5cff" />
+    </linearGradient>
+    <radialGradient id="dot" cx="0.38" cy="0.35" r="0.9">
+      <stop offset="0" stop-color="#ff8a95" />
+      <stop offset="0.55" stop-color="#ff5c6c" />
+      <stop offset="1" stop-color="#e03a4e" />
+    </radialGradient>
+  </defs>
+
+  <!-- macOS squircle -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)" />
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#glow)" />
+  <rect x="103" y="103" width="818" height="818" rx="183" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="6" />
+
+  <!-- stem -->
+  <path d="M 512 318 C 508 272 522 236 556 208" fill="none" stroke="#a07a4f"
+        stroke-width="34" stroke-linecap="round" />
+
+  <!-- leaf -->
+  <path d="M 560 268 C 620 196 716 188 764 216 C 748 292 664 340 584 322 C 570 318 562 296 560 268 Z"
+        fill="url(#leaf)" />
+
+  <!-- pear body -->
+  <path d="M 512 300
+           C 550 300 556 352 574 416
+           C 586 464 606 494 634 534
+           C 668 584 692 616 692 668
+           C 692 768 612 828 512 828
+           C 412 828 332 768 332 668
+           C 332 616 356 584 390 534
+           C 418 494 438 464 450 416
+           C 468 352 474 300 512 300
+           Z"
+        fill="url(#pear)" />
+
+  <!-- record dot burned into the pear -->
+  <circle cx="512" cy="656" r="108" fill="#0f1117" fill-opacity="0.8" />
+  <circle cx="512" cy="656" r="84" fill="url(#dot)" />
+</svg>

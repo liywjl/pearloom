@@ -1,4 +1,4 @@
-# LoomP2P — notes for agents
+# Pearloom — notes for agents
 
 P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See README.md for architecture.
 
@@ -8,8 +8,8 @@ P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See READ
 - `npm test` — vitest; includes a 2-peer P2P integration test on a local hyperdht testnet (no internet needed)
 - `npm run typecheck` / `npm run format`
 - `npm run package` — .app via @electron/packager
-- `electron . --screenshot out.png` — headless-ish UI smoke test (captures window, quits)
-- Second instance for manual P2P testing: `npx electron . --user-data-dir=/tmp/loom-peer-b`
+- `electron . --screenshot out.png` — headless-ish UI smoke test (captures window, quits); add `--view library` to open on the Library view (README screenshots use demo data in a throwaway `--user-data-dir`)
+- Second instance for manual P2P testing: `npx electron . --user-data-dir=/tmp/pearloom-peer-b`
 
 ## Hard-won facts (July 2026)
 
@@ -17,7 +17,7 @@ P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See READ
 - Autobase 7 API: `new Autobase(store, bootstrapKey, { open, apply })`; writers added inside `apply` via `host.addWriter`; `apply` must be a deterministic reducer (no clocks/randomness/IO).
 - Invite flow = `blind-pairing` (autopass pattern): creator appends invite record into the bee; joiner sends `Autobase.getLocalKey(namespacedStore)` as userData; member confirms with `{ key, encryptionKey }`.
 - A freshly opened remote Hyperdrive is sparse and knows nothing: call `drive.findingPeers()` + `swarm.flush()` + `drive.update({ wait: true })` before `entry()`, or you get 404s (bit us in serve-drive's `get`).
-- `serve-drive` provides the HTTP Range gateway for `<video>` P2P streaming; local recordings stream via the custom `loom://` protocol instead.
+- `serve-drive` provides the HTTP Range gateway for `<video>` P2P streaming; local recordings stream via the custom `pearloom://` protocol instead.
 - Holepunch modules ship no TS types — ambient shims live in `src/types/holepunch.d.ts`. Native modules (sodium/udx) are N-API, so they load in Electron main without rebuilds; keep them `external` in esbuild (see scripts/build.mjs).
 - MediaRecorder webm has the Infinity-duration quirk; PlayerView works around it by seeking far ahead once.
 - **Recording while backgrounded**: rAF freezes when the Electron window is occluded (i.e. whenever the user records another app), so the compositor draws on a `setInterval` and the window sets `backgroundThrottling: false`. Both are required.
@@ -30,5 +30,5 @@ P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See READ
 
 ## Conventions
 
-- Renderer is sandbox-style (contextIsolation, no Node); everything crosses `window.loom` (typed in src/preload/index.ts, contracts in src/shared/types.ts).
+- Renderer is sandbox-style (contextIsolation, no Node); everything crosses `window.pearloom` (typed in src/preload/index.ts, contracts in src/shared/types.ts).
 - P2P engine (`src/main/p2p/`) is plain Node code — keep it Electron-free so tests can drive it directly.

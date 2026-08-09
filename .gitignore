@@ -4,3 +4,5 @@ out/
 *.log
 .DS_Store
 *.tsbuildinfo
+.claude/settings.local.json
+site/*.iconset/

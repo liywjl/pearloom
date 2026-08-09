@@ -21,7 +21,7 @@ describe("P2P sharing end-to-end", () => {
   const videoBytes = Buffer.from("FAKE-WEBM-" + "x".repeat(4096));
 
   const makePeer = async (name: string) => {
-    const dir = await mkdtemp(join(tmpdir(), `loom-p2p-${name}-`));
+    const dir = await mkdtemp(join(tmpdir(), `pearloom-${name}-`));
     dirs.push(dir);
     const recordings = new RecordingStore(join(dir, "recordings"));
     await recordings.ready();
