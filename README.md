@@ -11,6 +11,10 @@ Record your screen with a camera bubble and narration, keep everything **local**
 
 ![Pearloom library view: recordings with thumbnails, tags, and share controls](site/screenshot.png)
 
+## Download
+
+Grab the newest zip from [Releases](https://github.com/liywjl/pearloom/releases) — `mac-arm64` for Apple Silicon, `mac-x64` for Intel — unzip, and drag `Pearloom.app` into Applications. Each release's notes say whether that build is signed & notarized; unsigned builds need one command after unzipping (`xattr -dr com.apple.quarantine Pearloom.app`) or just build from source (four commands, below).
+
 ## Features
 
 - **Screen recording** — pick any screen or window (thumbnail picker), 30 fps. Recording keeps running while you work in other apps and while you navigate inside Pearloom (a floating HUD follows you; the window is exempt from background throttling).
@@ -102,6 +106,8 @@ The build above is **unsigned**. That's fine for an app you built yourself, but 
 2. Notarize with Apple (`@electron/notarize`) and staple the ticket.
 
 Until releases are signed, the supported install path is **build from source** (four commands above), or strip the quarantine flag yourself on a machine you trust: `xattr -dr com.apple.quarantine Pearloom.app`.
+
+Releases are automated: pushing a `v*` tag runs [release.yml](.github/workflows/release.yml), which tests, packages both architectures, signs + notarizes when the repo has signing secrets (bootstrap them with `scripts/setup-signing.sh`), and publishes the zips as a GitHub Release.
 
 Two signing-adjacent gotchas worth knowing:
 

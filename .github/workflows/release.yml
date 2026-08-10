@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    runs-on: macos-14
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    env:
+      MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - name: Import signing certificate
+        if: env.MACOS_CERT_P12 != ''
+        run: |
+          KEYCHAIN_PW=$(openssl rand -hex 24)
+          security create-keychain -p "$KEYCHAIN_PW" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PW" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          echo "$MACOS_CERT_P12" | base64 --decode > cert.p12
+          security import cert.p12 -k build.keychain -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          rm cert.p12
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PW" build.keychain
+          echo "MACOS_SIGN=1" >> "$GITHUB_ENV"
+
+      - name: Build and package
+        run: |
+          npm run build
+          node scripts/package.mjs --arch=${{ matrix.arch }}
+
+      - name: Zip app bundle
+        run: |
+          ditto -c -k --keepParent \
+            "out/Pearloom-darwin-${{ matrix.arch }}/Pearloom.app" \
+            "Pearloom-${{ github.ref_name }}-mac-${{ matrix.arch }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pearloom-${{ matrix.arch }}
+          path: Pearloom-*.zip
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      SIGNED: ${{ secrets.MACOS_CERT_P12 != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Write release notes
+        run: |
+          {
+            echo "## Downloads"
+            echo ""
+            echo "| Mac | File |"
+            echo "| --- | --- |"
+            echo "| Apple Silicon (M1 and later) | \`Pearloom-${{ github.ref_name }}-mac-arm64.zip\` |"
+            echo "| Intel | \`Pearloom-${{ github.ref_name }}-mac-x64.zip\` |"
+            echo ""
+            if [ "$SIGNED" = "true" ]; then
+              echo "Builds are signed and notarized — unzip and drag Pearloom.app into Applications."
+            else
+              echo "> [!IMPORTANT]"
+              echo "> These builds are **unsigned**, so Gatekeeper will refuse to open them after download."
+              echo "> After unzipping, run: \`xattr -dr com.apple.quarantine Pearloom.app\`"
+              echo "> Or build from source — see the README."
+            fi
+          } > notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "Pearloom ${{ github.ref_name }}" \
+            --notes-file notes.md \
+            Pearloom-*.zip
