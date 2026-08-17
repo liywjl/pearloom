@@ -12,11 +12,15 @@ const arch = archArg ? archArg.split("=")[1] : process.arch;
 // Developer ID certificate into a throwaway keychain first.
 const sign = process.env.MACOS_SIGN === "1";
 
-// Notarization accepts either credential style; whichever is configured wins.
-// App-specific password: APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID
+// Notarization accepts any of three credential styles; whichever is configured wins.
+// Keychain profile: APPLE_KEYCHAIN_PROFILE — created once with
+//   `xcrun notarytool store-credentials <name> --apple-id ... --team-id ...`
+//   Preferred locally: the password stays in the keychain, never in env or shell history.
+// App-specific password: APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID (used by CI)
 // App Store Connect API key: APPLE_API_KEY (path to .p8) + APPLE_API_KEY_ID + APPLE_API_ISSUER
 function notarizeOptions() {
   const {
+    APPLE_KEYCHAIN_PROFILE,
     APPLE_ID,
     APPLE_APP_SPECIFIC_PASSWORD,
     APPLE_TEAM_ID,
@@ -24,6 +28,9 @@ function notarizeOptions() {
     APPLE_API_KEY_ID,
     APPLE_API_ISSUER,
   } = process.env;
+  if (APPLE_KEYCHAIN_PROFILE) {
+    return { keychainProfile: APPLE_KEYCHAIN_PROFILE };
+  }
   if (APPLE_API_KEY && APPLE_API_KEY_ID && APPLE_API_ISSUER) {
     return {
       appleApiKey: APPLE_API_KEY,
