@@ -163,8 +163,12 @@ export class P2PEngine extends EventEmitter {
   async joinSpace(inviteCode: string): Promise<SpaceInfo> {
     const invite = z32.decode(inviteCode.trim());
     const localId = randomUUID();
-    const ns = this.store.namespace(`space/${localId}`);
-    const userData = await Autobase.getLocalKey(ns.session());
+    // A separate namespace instance for getLocalKey (it may close its store);
+    // must match the namespace the Space's Autobase will live in — and never
+    // `.session()`, which silently resets to the root namespace.
+    const userData = await Autobase.getLocalKey(
+      this.store.namespace(`space/${localId}`),
+    );
 
     const candidate = this.pairing.addCandidate({
       invite,

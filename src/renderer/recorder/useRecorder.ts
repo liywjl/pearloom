@@ -9,6 +9,7 @@ import {
   type CompositorHandle,
   pickMimeType,
 } from "./composite";
+import { createActivityTrack, type ActivityTrack } from "./activity";
 
 export interface DeviceChoice {
   deviceId: string;
@@ -82,7 +83,7 @@ export function useRecorder(): RecorderApi {
     offKeys: (() => void) | null;
     offCursor: (() => void) | null;
     offBubbleMove: (() => void) | null;
-    activity: ActivityEvent[];
+    activity: ActivityTrack;
   }>({
     compositor: null,
     recordingId: null,
@@ -95,27 +96,12 @@ export function useRecorder(): RecorderApi {
     offKeys: null,
     offCursor: null,
     offBubbleMove: null,
-    activity: [],
+    activity: createActivityTrack(),
   });
 
-  // Coalesce keydowns into typing bursts; cap the track so a marathon
-  // recording can't bloat the metadata.
-  const MAX_ACTIVITY_EVENTS = 4000;
-  const TYPING_GAP_MS = 1500;
   const pushActivity = (event: ActivityEvent) => {
     if (session.current.pausedAt !== null) return;
-    const track = session.current.activity;
-    if (event.kind === "typing") {
-      const last = track[track.length - 1];
-      if (
-        last?.kind === "typing" &&
-        event.atMs - (last.endMs ?? last.atMs) < TYPING_GAP_MS
-      ) {
-        last.endMs = event.atMs;
-        return;
-      }
-    }
-    if (track.length < MAX_ACTIVITY_EVENTS) track.push(event);
+    session.current.activity.push(event);
   };
 
   const patch = (p: Partial<RecorderState>) =>
@@ -276,7 +262,7 @@ export function useRecorder(): RecorderApi {
         (s) => s.id === selectedSourceId,
       );
       const bounds = source?.displayBounds ?? null;
-      session.current.activity = [];
+      session.current.activity = createActivityTrack();
       const elapsed = () => Date.now() - session.current.startedAt;
 
       // The composited camera bubble follows the on-screen face bubble
@@ -403,7 +389,7 @@ export function useRecorder(): RecorderApi {
     const meta = await window.pearloom.recordings.finalize(recordingId, {
       durationMs,
       thumbnailDataUrl: thumbnail,
-      activity: session.current.activity,
+      activity: session.current.activity.events,
     });
     patch({ phase: "idle", previewStream: null, elapsedMs: 0 });
     return meta;

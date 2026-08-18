@@ -196,6 +196,71 @@ describe("P2P sharing end-to-end", () => {
     });
     expect(aliceMembers.map((m) => m.name).sort()).toEqual(["alice", "bob"]);
   }, 120_000);
+
+  it("double-liking is idempotent (likes are keyed by the signing writer)", async () => {
+    const draft = aliceRecordings.begin("Likes", "video/webm");
+    await aliceRecordings.appendChunk(draft.id, videoBytes);
+    const rec = await aliceRecordings.finalize(draft.id, {
+      durationMs: 1_000,
+      thumbnailDataUrl: null,
+      activity: [],
+    });
+    const space = await alice.createSpace("Likes space");
+    await alice.publishRecording(rec.id, space.id);
+    const c = await alice.addComment(space.id, {
+      recordingId: rec.id,
+      text: "self-review",
+      atMs: 500,
+      endMs: null,
+    });
+
+    await alice.setCommentLike(space.id, rec.id, c.id, true);
+    await alice.setCommentLike(space.id, rec.id, c.id, true);
+    const liked = await waitFor(async () => {
+      const list = await alice.listComments(space.id, rec.id);
+      const target = list.find((x) => x.id === c.id);
+      return target && target.likeCount > 0 ? target : null;
+    });
+    expect(liked.likeCount).toBe(1);
+    expect(liked.likedByMe).toBe(true);
+
+    // Unliking twice is also safe and converges to zero.
+    await alice.setCommentLike(space.id, rec.id, c.id, false);
+    await alice.setCommentLike(space.id, rec.id, c.id, false);
+    const unliked = await waitFor(async () => {
+      const list = await alice.listComments(space.id, rec.id);
+      const target = list.find((x) => x.id === c.id);
+      return target && target.likeCount === 0 ? target : null;
+    });
+    expect(unliked.likedByMe).toBe(false);
+  }, 60_000);
+
+  it("publishing to a second space tracks both shares independently", async () => {
+    const draft = aliceRecordings.begin("Multi-share", "video/webm");
+    await aliceRecordings.appendChunk(draft.id, videoBytes);
+    const rec = await aliceRecordings.finalize(draft.id, {
+      durationMs: 1_000,
+      thumbnailDataUrl: null,
+      activity: [],
+    });
+    const s1 = await alice.createSpace("Share one");
+    const s2 = await alice.createSpace("Share two");
+    await alice.publishRecording(rec.id, s1.id);
+    await alice.publishRecording(rec.id, s2.id);
+
+    expect(aliceRecordings.get(rec.id)!.sharedTo.sort()).toEqual(
+      [s1.id, s2.id].sort(),
+    );
+    expect(await alice.listShared(s1.id)).toHaveLength(1);
+    expect(await alice.listShared(s2.id)).toHaveLength(1);
+  }, 60_000);
+
+  it("leaving a space removes it from the list", async () => {
+    const space = await alice.createSpace("Ephemeral");
+    expect(alice.listSpaces().some((s) => s.id === space.id)).toBe(true);
+    await alice.leaveSpace(space.id);
+    expect(alice.listSpaces().some((s) => s.id === space.id)).toBe(false);
+  }, 60_000);
 });
 
 async function waitFor<T>(

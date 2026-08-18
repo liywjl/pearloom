@@ -9,6 +9,7 @@ import type {
   SpaceInfo,
 } from "../../shared/types";
 import { formatDate, formatDuration } from "../lib/format";
+import { pickActiveComment } from "../lib/active-comment";
 import { ShareDialog } from "../components/ShareDialog";
 
 export type PlayerTarget =
@@ -424,17 +425,9 @@ function Timeline(props: {
   const pct = (ms: number) => `${Math.min(99.4, (ms / dur) * 100)}%`;
   const anchored = props.comments.filter((c) => c.atMs !== null);
 
-  // SoundCloud-style: a comment surfaces on its own while playback passes it
-  // (its section, or a few seconds for point comments); hovering a chip wins.
-  const ACTIVE_WINDOW_MS = 4000;
+  // A comment surfaces on its own while playback passes it; hovering wins.
   const hovered = anchored.find((c) => c.id === hoveredId) ?? null;
-  const playing = anchored
-    .filter((c) => {
-      const end = c.endMs ?? c.atMs! + ACTIVE_WINDOW_MS;
-      return props.currentMs >= c.atMs! && props.currentMs <= end;
-    })
-    .sort((a, b) => b.atMs! - a.atMs!)[0];
-  const active = hovered ?? playing ?? null;
+  const active = hovered ?? pickActiveComment(anchored, props.currentMs);
   const clicks = props.activity.filter((a) => a.kind === "click");
   const typing = props.activity.filter((a) => a.kind === "typing");
 

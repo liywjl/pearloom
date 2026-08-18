@@ -73,7 +73,12 @@ export class Space extends EventEmitter {
     this.ctx = ctx;
     this.localId = identity.localId;
     this.creator = identity.creator;
-    this.base = new Autobase(ctx.store.session(), identity.key, {
+    // NOTE: pass the namespaced store itself — corestore's `.session()` on a
+    // namespace silently resets to the ROOT namespace, which made every
+    // space share (and exclusively lock) one `local` core: the second
+    // Autobase.ready() then hung forever. Autobase takes ownership and
+    // closes this store instance with the base.
+    this.base = new Autobase(ctx.store, identity.key, {
       open: (viewStore: any) =>
         new Hyperbee(viewStore.get("view"), {
           extension: false,
@@ -154,7 +159,8 @@ export class Space extends EventEmitter {
     await this.base.ready();
 
     // Per-member per-space drive for the video blobs this member publishes.
-    this.drive = new Hyperdrive(this.ctx.store.namespace("drive").session());
+    // Same trap as above: `.session()` would drop the "drive" namespace.
+    this.drive = new Hyperdrive(this.ctx.store.namespace("drive"));
     await this.drive.ready();
 
     if (this.creator && spaceName) {
