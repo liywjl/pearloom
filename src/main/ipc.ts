@@ -33,9 +33,16 @@ interface Deps {
   recordings: RecordingStore;
   p2p: P2PEngine;
   getWindow: () => BrowserWindow | null;
+  /** Returns the main window, recreating it if the user closed it. */
+  ensureWindow: () => BrowserWindow | null;
 }
 
-export function registerIpcHandlers({ recordings, p2p, getWindow }: Deps) {
+export function registerIpcHandlers({
+  recordings,
+  p2p,
+  getWindow,
+  ensureWindow,
+}: Deps) {
   // capture
   ipcMain.handle("capture:sources", () => listDisplaySources());
   ipcMain.handle("capture:arm-source", (_e, sourceId: string) =>
@@ -92,10 +99,19 @@ export function registerIpcHandlers({ recordings, p2p, getWindow }: Deps) {
   );
 
   // quick-record popover (tray) — start runs in the main window's renderer,
-  // which owns the recorder; the popover only forwards the choices.
+  // which owns the recorder; the popover only forwards the choices. The
+  // window may have been closed (tray keeps the app alive): recreate it and
+  // defer the request until its renderer has loaded.
   ipcMain.handle("quickrec:start", (_e, opts: QuickRecStart) => {
     closeQuickRec();
-    getWindow()?.webContents.send("event:request-start", opts);
+    const win = ensureWindow();
+    if (!win) return;
+    const send = () => win.webContents.send("event:request-start", opts);
+    if (win.webContents.isLoading()) {
+      win.webContents.once("did-finish-load", send);
+    } else {
+      send();
+    }
   });
   ipcMain.handle("quickrec:open-app", () => {
     closeQuickRec();

@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { join } from "node:path";
 import { userInfo } from "node:os";
@@ -410,7 +410,11 @@ export class P2PEngine extends EventEmitter {
       encryptionKeyHex: s.encryptionKeyHex,
       creator: s.creator,
     }));
-    await writeFile(this.spacesPath, JSON.stringify(list, null, 2));
+    // Atomic write: this file holds the space keys — a crash mid-write would
+    // otherwise silently lose every space on the next load.
+    const tmp = `${this.spacesPath}.tmp`;
+    await writeFile(tmp, JSON.stringify(list, null, 2));
+    await rename(tmp, this.spacesPath);
   }
 
   async close(): Promise<void> {

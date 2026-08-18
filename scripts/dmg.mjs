@@ -49,6 +49,7 @@ try {
     staging,
     "-format",
     "UDZO",
+    "-ov",
     dmgPath,
   ];
   for (let attempt = 1; ; attempt++) {
@@ -76,10 +77,22 @@ if (sign) {
     APPLE_ID,
     APPLE_APP_SPECIFIC_PASSWORD,
     APPLE_TEAM_ID,
+    APPLE_API_KEY,
+    APPLE_API_KEY_ID,
+    APPLE_API_ISSUER,
   } = process.env;
   let credentials = null;
   if (APPLE_KEYCHAIN_PROFILE) {
     credentials = ["--keychain-profile", APPLE_KEYCHAIN_PROFILE];
+  } else if (APPLE_API_KEY && APPLE_API_KEY_ID && APPLE_API_ISSUER) {
+    credentials = [
+      "--key",
+      APPLE_API_KEY,
+      "--key-id",
+      APPLE_API_KEY_ID,
+      "--issuer",
+      APPLE_API_ISSUER,
+    ];
   } else if (APPLE_ID && APPLE_APP_SPECIFIC_PASSWORD && APPLE_TEAM_ID) {
     credentials = [
       "--apple-id",
@@ -90,12 +103,38 @@ if (sign) {
       APPLE_TEAM_ID,
     ];
   }
-  if (credentials) {
-    run("xcrun", ["notarytool", "submit", dmgPath, "--wait", ...credentials]);
-    run("xcrun", ["stapler", "staple", dmgPath]);
-  } else {
-    console.warn("MACOS_SIGN=1 but no notarization credentials — DMG signed only.");
+  if (!credentials) {
+    throw new Error(
+      "MACOS_SIGN=1 but no notarization credentials — a signed-only DMG would ship un-notarized.",
+    );
   }
+
+  // `notarytool submit --wait` exits 0 even when the verdict is Invalid —
+  // parse the JSON result and fetch the log so CI shows the real reason.
+  const submitOut = execFileSync(
+    "xcrun",
+    [
+      "notarytool",
+      "submit",
+      dmgPath,
+      "--wait",
+      "--output-format",
+      "json",
+      ...credentials,
+    ],
+    { encoding: "utf8" },
+  );
+  const submission = JSON.parse(submitOut);
+  if (submission.status !== "Accepted") {
+    console.error(`notarization ${submission.status} (id ${submission.id}):`);
+    try {
+      run("xcrun", ["notarytool", "log", submission.id, ...credentials]);
+    } catch {
+      /* log fetch is best-effort */
+    }
+    throw new Error(`DMG notarization ${submission.status}`);
+  }
+  run("xcrun", ["stapler", "staple", dmgPath]);
 }
 
 console.log(`dmg${sign ? " + signed" : ""}: ${dmgPath}`);

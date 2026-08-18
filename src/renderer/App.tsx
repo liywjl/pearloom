@@ -40,7 +40,9 @@ export function App() {
   useEffect(() => {
     const was = prevPhase.current;
     prevPhase.current = recorder.phase;
-    if (recorder.phase === "recording" && was !== "recording") {
+    // Only on a fresh start — resume also lands on "recording", and firing
+    // started() again would hide the window and recreate the face bubble.
+    if (recorder.phase === "recording" && was === "starting") {
       void window.pearloom.recui.started(recorder.selectedCameraId);
     }
     if (recorder.phase === "paused" && was === "recording") {

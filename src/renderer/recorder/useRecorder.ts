@@ -180,6 +180,10 @@ export function useRecorder(): RecorderApi {
   };
 
   const start = useCallback(async (overrides?: StartOverrides) => {
+    // Double-start (double-click, or a quickrec request racing a render)
+    // would leak the live MediaRecorder and interleave chunks of two
+    // recordings into one file.
+    if (stateRef.current.phase !== "idle") return;
     const selectedSourceId =
       overrides?.sourceId ?? stateRef.current.selectedSourceId;
     const selectedCameraId =
@@ -386,13 +390,25 @@ export function useRecorder(): RecorderApi {
     session.current.compositor = null;
     session.current.recordingId = null;
 
-    const meta = await window.pearloom.recordings.finalize(recordingId, {
-      durationMs,
-      thumbnailDataUrl: thumbnail,
-      activity: session.current.activity.events,
-    });
-    patch({ phase: "idle", previewStream: null, elapsedMs: 0 });
-    return meta;
+    // A failed finalize (e.g. disk full) must still leave "saving", or the
+    // window stays hidden with the tray stuck on a live recording.
+    try {
+      const meta = await window.pearloom.recordings.finalize(recordingId, {
+        durationMs,
+        thumbnailDataUrl: thumbnail,
+        activity: session.current.activity.events,
+      });
+      patch({ phase: "idle", previewStream: null, elapsedMs: 0 });
+      return meta;
+    } catch (err) {
+      patch({
+        phase: "idle",
+        previewStream: null,
+        elapsedMs: 0,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
   }, []);
 
   // Refs so async callbacks always see the current state/stop.

@@ -44,14 +44,29 @@ export function BubbleApp() {
     };
   }, []);
 
-  // Two-finger scroll anywhere on the bubble glides it across the screen
-  // (Arc-PiP style); click-drag still works via the CSS drag region.
+  // Manual drag + two-finger scroll, both via bubbleMoveBy. A CSS drag
+  // region (-webkit-app-region) would swallow mouse AND wheel events on
+  // macOS, killing scroll-to-move — so the window moves itself instead.
   const onWheel = (e: React.WheelEvent) => {
     void window.pearloom.recui.bubbleMoveBy(e.deltaX, e.deltaY);
   };
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      void window.pearloom.recui.bubbleMoveBy(ev.movementX, ev.movementY);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   return (
-    <div className="bubble-root" onWheel={onWheel}>
+    <div className="bubble-root" onWheel={onWheel} onMouseDown={onMouseDown}>
       <div className="bubble-face" title="Drag or scroll to move">
         {cameraError ? (
           <div className="bubble-fallback">🎥</div>

@@ -1193,15 +1193,18 @@ textarea:focus {
   background: transparent !important;
   overflow: hidden;
 }
-/* The whole bubble is a drag region (also enables macOS three-finger drag);
-   buttons opt back out below so they stay clickable. */
+/* Dragging is handled in JS (mousedown → bubbleMoveBy): a CSS drag region
+   would swallow mouse and wheel events on macOS, killing scroll-to-move. */
 .bubble-root {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 8px;
-  -webkit-app-region: drag;
+  cursor: grab;
+}
+.bubble-root:active {
+  cursor: grabbing;
 }
 .bubble-face {
   position: relative;
@@ -1210,7 +1213,6 @@ textarea:focus {
   border-radius: 50%;
   overflow: hidden;
   background: #000;
-  -webkit-app-region: drag;
 }
 .bubble-face video {
   width: 100%;
@@ -1255,7 +1257,6 @@ textarea:focus {
   color: var(--danger);
   font-size: 1rem;
   padding: 0 4px;
-  -webkit-app-region: no-drag;
 }
 .bubble-stop:hover {
   transform: scale(1.2);

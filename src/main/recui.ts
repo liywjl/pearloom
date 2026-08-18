@@ -21,12 +21,15 @@ import { join } from "node:path";
 
 interface Deps {
   getWindow: () => BW | null;
+  /** Returns the main window, recreating it if the user closed it. */
+  ensureWindow: () => BW | null;
 }
 
 let deps: Deps | null = null;
 let tray: Tray | null = null;
 let bubble: BrowserWindow | null = null;
 let quickRec: BrowserWindow | null = null;
+let quickRecHiddenAt = 0;
 let recording = false;
 let paused = false;
 let lastElapsedMs = 0;
@@ -47,7 +50,7 @@ function requestTogglePause() {
 }
 
 export function showApp() {
-  const win = deps?.getWindow();
+  const win = deps?.ensureWindow();
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.show();
@@ -194,9 +197,13 @@ function closeBubble() {
 function toggleQuickRec() {
   if (quickRec && !quickRec.isDestroyed() && quickRec.isVisible()) {
     closeQuickRec();
-  } else {
-    openQuickRec();
+    return;
   }
+  // Clicking the tray icon while the popover is open fires its blur (which
+  // hides it) BEFORE this click handler — without this guard the toggle
+  // would instantly reopen it and the tray click could never dismiss.
+  if (Date.now() - quickRecHiddenAt < 300) return;
+  openQuickRec();
 }
 
 const QUICKREC_W = 320;
@@ -256,7 +263,10 @@ function openQuickRec() {
 }
 
 export function closeQuickRec() {
-  if (quickRec && !quickRec.isDestroyed()) quickRec.hide();
+  if (quickRec && !quickRec.isDestroyed() && quickRec.isVisible()) {
+    quickRecHiddenAt = Date.now();
+    quickRec.hide();
+  }
 }
 
 export function destroyRecordingUi() {

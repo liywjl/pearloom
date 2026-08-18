@@ -122,8 +122,17 @@ app.whenReady().then(async () => {
 
   registerPearloomProtocol(recordings, p2p);
   installDisplayMediaHandler();
-  registerIpcHandlers({ recordings, p2p, getWindow: () => mainWindow });
-  initRecordingUi({ getWindow: () => mainWindow });
+  const ensureWindow = () => {
+    if (!mainWindow) createWindow();
+    return mainWindow;
+  };
+  registerIpcHandlers({
+    recordings,
+    p2p,
+    getWindow: () => mainWindow,
+    ensureWindow,
+  });
+  initRecordingUi({ getWindow: () => mainWindow, ensureWindow });
 
   createWindow();
 
