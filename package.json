@@ -12,6 +12,7 @@
     "dev": "node scripts/build.mjs --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "npm run build && vitest run -c vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "prettier --check \"src/**/*.{ts,tsx,css,html}\"",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\"",
@@ -25,6 +26,7 @@
     "@types/react-dom": "^19.2.3",
     "electron": "^43.0.0",
     "esbuild": "^0.28.1",
+    "playwright-core": "^1.62.1",
     "prettier": "^3.9.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"

@@ -6,6 +6,7 @@ P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See READ
 
 - `npm start` — build (esbuild) + launch Electron
 - `npm test` — vitest; includes a 2-peer P2P integration test on a local hyperdht testnet (no internet needed)
+- `npm run e2e` — Playwright-driven Electron e2e flows (tests/e2e/, real app windows, seeded user-data dir; excluded from `npm test`)
 - `npm run typecheck` / `npm run format`
 - `npm run package` — .app via @electron/packager
 - `electron . --screenshot out.png` — headless-ish UI smoke test (captures window, quits); add `--view library` to open on the Library view (README screenshots use demo data in a throwaway `--user-data-dir`)
@@ -15,6 +16,7 @@ P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See READ
 
 - **Pear CLI ≥2.6 removed `pear init`; `pear run` is deprecated.** Current Pear desktop model = plain Electron + `pear-runtime` npm module (see hello-pear-electron). Don't follow pre-2026 tutorials that use `pear-electron`/`Pear` globals/`pear.gui` config.
 - Autobase 7 API: `new Autobase(store, bootstrapKey, { open, apply })`; writers added inside `apply` via `host.addWriter`; `apply` must be a deterministic reducer (no clocks/randomness/IO).
+- **corestore `.session()` on a namespace silently resets to the ROOT namespace** (corestore 7.11). Namespaced things must get the namespace instance itself, never `ns.session()` — the session collapse made every space share one exclusively-locked `local` core, hanging the second `Autobase.ready()` forever.
 - Invite flow = `blind-pairing` (autopass pattern): creator appends invite record into the bee; joiner sends `Autobase.getLocalKey(namespacedStore)` as userData; member confirms with `{ key, encryptionKey }`.
 - A freshly opened remote Hyperdrive is sparse and knows nothing: call `drive.findingPeers()` + `swarm.flush()` + `drive.update({ wait: true })` before `entry()`, or you get 404s (bit us in serve-drive's `get`).
 - `serve-drive` provides the HTTP Range gateway for `<video>` P2P streaming; local recordings stream via the custom `pearloom://` protocol instead.
