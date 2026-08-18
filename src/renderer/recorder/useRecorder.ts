@@ -39,13 +39,20 @@ export interface RecorderState {
   clicksAvailable: boolean;
 }
 
+/** Per-call selection overrides (quick-record popover); undefined = keep state. */
+export interface StartOverrides {
+  sourceId?: string;
+  cameraId?: string | null;
+  micId?: string | null;
+}
+
 export interface RecorderApi extends RecorderState {
   refreshDevices: () => Promise<void>;
   selectSource: (id: string) => void;
   selectCamera: (id: string | null) => void;
   selectMic: (id: string | null) => void;
   setShowClicks: (on: boolean) => Promise<void>;
-  start: () => Promise<void>;
+  start: (overrides?: StartOverrides) => Promise<void>;
   pause: () => void;
   resume: () => void;
   stop: () => Promise<RecordingMeta | null>;
@@ -186,14 +193,29 @@ export function useRecorder(): RecorderApi {
     void window.pearloom.capture.cursorStop();
   };
 
-  const start = useCallback(async () => {
-    const { selectedSourceId, selectedCameraId, selectedMicId } =
-      stateRef.current;
+  const start = useCallback(async (overrides?: StartOverrides) => {
+    const selectedSourceId =
+      overrides?.sourceId ?? stateRef.current.selectedSourceId;
+    const selectedCameraId =
+      overrides?.cameraId !== undefined
+        ? overrides.cameraId
+        : stateRef.current.selectedCameraId;
+    const selectedMicId =
+      overrides?.micId !== undefined
+        ? overrides.micId
+        : stateRef.current.selectedMicId;
     if (!selectedSourceId) {
       patch({ error: "Pick a screen or window to record." });
       return;
     }
-    patch({ phase: "starting", error: null, elapsedMs: 0 });
+    patch({
+      phase: "starting",
+      error: null,
+      elapsedMs: 0,
+      selectedSourceId,
+      selectedCameraId,
+      selectedMicId,
+    });
     try {
       await window.pearloom.capture.armSource(selectedSourceId);
       const screen = await navigator.mediaDevices.getDisplayMedia({

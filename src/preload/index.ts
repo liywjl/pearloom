@@ -9,6 +9,7 @@ import type {
   MediaAccessStatus,
   MemberInfo,
   Profile,
+  QuickRecStart,
   ReactionRecord,
   RecordingMeta,
   SharedRecording,
@@ -168,6 +169,18 @@ const api = {
       const wrapped = (_e: unknown, ms: number) => handler(ms);
       ipcRenderer.on("event:bubble-tick", wrapped);
       return () => ipcRenderer.removeListener("event:bubble-tick", wrapped);
+    },
+  },
+  /** Tray quick-record popover ↔ main window. */
+  quickrec: {
+    start: (opts: QuickRecStart): Promise<void> =>
+      ipcRenderer.invoke("quickrec:start", opts),
+    openApp: (): Promise<void> => ipcRenderer.invoke("quickrec:open-app"),
+    close: (): Promise<void> => ipcRenderer.invoke("quickrec:close"),
+    onRequestStart(handler: (opts: QuickRecStart) => void): () => void {
+      const wrapped = (_e: unknown, opts: QuickRecStart) => handler(opts);
+      ipcRenderer.on("event:request-start", wrapped);
+      return () => ipcRenderer.removeListener("event:request-start", wrapped);
     },
   },
   events: {

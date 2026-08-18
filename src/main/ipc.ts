@@ -14,11 +14,14 @@ import {
   stopCursorTracking,
 } from "./capture";
 import {
+  closeQuickRec,
   recordingPaused,
   recordingStarted,
   recordingStopped,
   recordingTick,
+  showApp,
 } from "./recui";
+import type { QuickRecStart } from "../shared/types";
 import type {
   FinalizeRecordingInput,
   MediaAccessKind,
@@ -83,6 +86,18 @@ export function registerIpcHandlers({ recordings, p2p, getWindow }: Deps) {
   ipcMain.handle("recui:request-toggle-pause", () =>
     getWindow()?.webContents.send("event:request-toggle-pause"),
   );
+
+  // quick-record popover (tray) — start runs in the main window's renderer,
+  // which owns the recorder; the popover only forwards the choices.
+  ipcMain.handle("quickrec:start", (_e, opts: QuickRecStart) => {
+    closeQuickRec();
+    getWindow()?.webContents.send("event:request-start", opts);
+  });
+  ipcMain.handle("quickrec:open-app", () => {
+    closeQuickRec();
+    showApp();
+  });
+  ipcMain.handle("quickrec:close", () => closeQuickRec());
 
   // local recordings
   ipcMain.handle("rec:begin", (_e, title: string, mimeType: string) =>

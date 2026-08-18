@@ -139,6 +139,13 @@ export interface MemberInfo {
   addedAt: number;
 }
 
+/** Start request from the tray quick-record popover to the main window. */
+export interface QuickRecStart {
+  sourceId: string;
+  camera: boolean;
+  mic: boolean;
+}
+
 /** Payload for finalizing a recording after MediaRecorder stops. */
 export interface FinalizeRecordingInput {
   durationMs: number;

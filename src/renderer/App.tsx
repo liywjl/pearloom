@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import type {
   Profile,
+  QuickRecStart,
   RecordingMeta,
   SharedRecording,
   SpaceInfo,
@@ -83,6 +84,16 @@ export function App() {
     if (recorder.phase === "recording") recorder.pause();
     else if (recorder.phase === "paused") recorder.resume();
   };
+  // Start requests from the tray quick-record popover.
+  const startRef = React.useRef<(opts: QuickRecStart) => void>(() => {});
+  startRef.current = (opts) => {
+    if (recorder.phase !== "idle") return;
+    void recorder.start({
+      sourceId: opts.sourceId,
+      cameraId: opts.camera ? recorder.selectedCameraId : null,
+      micId: opts.mic ? recorder.selectedMicId : null,
+    });
+  };
   useEffect(() => {
     const offStop = window.pearloom.recui.onRequestStop(
       () => void stopRef.current(),
@@ -90,9 +101,13 @@ export function App() {
     const offPause = window.pearloom.recui.onRequestTogglePause(() =>
       togglePauseRef.current(),
     );
+    const offStart = window.pearloom.quickrec.onRequestStart((opts) =>
+      startRef.current(opts),
+    );
     return () => {
       offStop();
       offPause();
+      offStart();
     };
   }, []);
 

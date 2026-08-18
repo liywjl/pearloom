@@ -1071,6 +1071,71 @@ textarea:focus {
   border-radius: 20px;
 }
 
+/* ---- tray quick-record popover ---- */
+.quickrec-body {
+  background: transparent !important;
+  overflow: hidden;
+}
+.quickrec-root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100vh;
+  padding: 14px;
+  background: rgba(15, 17, 23, 0.97);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.quickrec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.quickrec-title {
+  font-weight: 700;
+}
+.quickrec-link {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+.quickrec-screens {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quickrec-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+}
+.quickrec-screen img {
+  width: 100%;
+  border-radius: 6px;
+}
+.quickrec-screen span {
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quickrec-screen.selected {
+  border-color: var(--accent);
+}
+.quickrec-toggle {
+  font-size: 0.9rem;
+}
+.quickrec-start {
+  width: 100%;
+}
+
 /* ---- floating face bubble window ---- */
 .bubble-body {
   background: transparent !important;

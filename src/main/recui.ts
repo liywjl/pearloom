@@ -26,6 +26,7 @@ interface Deps {
 let deps: Deps | null = null;
 let tray: Tray | null = null;
 let bubble: BrowserWindow | null = null;
+let quickRec: BrowserWindow | null = null;
 let recording = false;
 let paused = false;
 let lastElapsedMs = 0;
@@ -45,7 +46,7 @@ function requestTogglePause() {
   deps?.getWindow()?.webContents.send("event:request-toggle-pause");
 }
 
-function showApp() {
+export function showApp() {
   const win = deps?.getWindow();
   if (!win) return;
   if (win.isMinimized()) win.restore();
@@ -53,25 +54,23 @@ function showApp() {
   win.focus();
 }
 
-function refreshTrayMenu() {
-  if (!tray) return;
-  tray.setContextMenu(
-    Menu.buildFromTemplate(
-      recording
-        ? [
-            {
-              label: paused ? "▶ Resume recording" : "⏸ Pause recording",
-              click: requestTogglePause,
-            },
-            { label: "■ Stop recording", click: requestStop },
-            { label: "Show Pearloom", click: showApp },
-          ]
-        : [
-            { label: "Open Pearloom", click: showApp },
-            { type: "separator" },
-            { role: "quit", label: "Quit Pearloom" },
-          ],
-    ),
+function trayMenu(): Menu {
+  return Menu.buildFromTemplate(
+    recording
+      ? [
+          {
+            label: paused ? "▶ Resume recording" : "⏸ Pause recording",
+            click: requestTogglePause,
+          },
+          { label: "■ Stop recording", click: requestStop },
+          { label: "Show Pearloom", click: showApp },
+        ]
+      : [
+          { label: "New recording…", click: toggleQuickRec },
+          { label: "Open Pearloom", click: showApp },
+          { type: "separator" },
+          { role: "quit", label: "Quit Pearloom" },
+        ],
   );
 }
 
@@ -85,7 +84,13 @@ export function initRecordingUi(d: Deps) {
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle("🟣");
   tray.setToolTip("Pearloom");
-  refreshTrayMenu();
+  // No setContextMenu: left-click opens the quick-record popover when idle
+  // (recording controls while recording); right-click opens the menu.
+  tray.on("click", () => {
+    if (recording) tray?.popUpContextMenu(trayMenu());
+    else toggleQuickRec();
+  });
+  tray.on("right-click", () => tray?.popUpContextMenu(trayMenu()));
 }
 
 export function recordingStarted(cameraDeviceId: string | null) {
@@ -93,7 +98,7 @@ export function recordingStarted(cameraDeviceId: string | null) {
   paused = false;
   lastElapsedMs = 0;
   tray?.setTitle("🔴 0:00");
-  refreshTrayMenu();
+  closeQuickRec();
   deps?.getWindow()?.hide();
   if (cameraDeviceId) openBubble(cameraDeviceId);
 }
@@ -111,7 +116,6 @@ export function recordingPaused(isPaused: boolean) {
   tray?.setTitle(
     `${paused ? "⏸" : "🔴"} ${formatElapsed(lastElapsedMs)}`,
   );
-  refreshTrayMenu();
   bubble?.webContents.send("event:bubble-paused", paused);
 }
 
@@ -120,7 +124,6 @@ export function recordingStopped() {
   recording = false;
   paused = false;
   tray?.setTitle("🟣");
-  refreshTrayMenu();
   closeBubble();
   showApp();
 }
@@ -169,8 +172,63 @@ function closeBubble() {
   bubble = null;
 }
 
+function toggleQuickRec() {
+  if (quickRec && !quickRec.isDestroyed()) closeQuickRec();
+  else openQuickRec();
+}
+
+/** Loom-style popover under the tray icon: pick a screen, hit record. */
+function openQuickRec() {
+  const width = 320;
+  const height = 420;
+  const trayBounds = tray?.getBounds();
+  const { workArea } = screen.getPrimaryDisplay();
+  const x = trayBounds
+    ? Math.round(
+        Math.min(
+          trayBounds.x + trayBounds.width / 2 - width / 2,
+          workArea.x + workArea.width - width - 8,
+        ),
+      )
+    : workArea.x + workArea.width - width - 8;
+  const y = trayBounds ? trayBounds.y + trayBounds.height + 6 : workArea.y + 8;
+  quickRec = new BrowserWindow({
+    width,
+    height,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+  quickRec.loadFile(join(__dirname, "../renderer/index.html"), {
+    hash: "quickrec",
+  });
+  quickRec.once("ready-to-show", () => quickRec?.show());
+  quickRec.on("blur", () => closeQuickRec());
+  quickRec.on("closed", () => {
+    quickRec = null;
+  });
+}
+
+export function closeQuickRec() {
+  if (quickRec && !quickRec.isDestroyed()) quickRec.close();
+  quickRec = null;
+}
+
 export function destroyRecordingUi() {
   closeBubble();
+  closeQuickRec();
   tray?.destroy();
   tray = null;
 }
