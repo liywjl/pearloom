@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,7 +28,15 @@ const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
 
 const staging = mkdtempSync(join(tmpdir(), "pearloom-dmg-"));
 try {
-  cpSync(appPath, join(staging, "Pearloom.app"), { recursive: true });
+  // ditto, not fs.cpSync: only ditto preserves the bundle exactly (symlinks,
+  // extended attributes) — cpSync breaks the code signature, and Apple then
+  // rejects the DMG's notarization with "signature of the binary is invalid".
+  run("ditto", [appPath, join(staging, "Pearloom.app")]);
+  if (process.env.MACOS_SIGN === "1") {
+    // Fail here, in seconds, if the copy broke the app signature — not after
+    // a multi-minute notarization round-trip.
+    run("codesign", ["--verify", "--strict", "--deep", join(staging, "Pearloom.app")]);
+  }
   symlinkSync("/Applications", join(staging, "Applications"));
   rmSync(dmgPath, { force: true });
   run("hdiutil", [
@@ -48,7 +56,8 @@ try {
 const sign = process.env.MACOS_SIGN === "1";
 if (sign) {
   // Partial identity match: codesign resolves it against the keychain.
-  run("codesign", ["--sign", "Developer ID Application", dmgPath]);
+  // Notarization requires a secure timestamp on the DMG signature.
+  run("codesign", ["--sign", "Developer ID Application", "--timestamp", dmgPath]);
 
   const {
     APPLE_KEYCHAIN_PROFILE,
