@@ -44,9 +44,15 @@ export function BubbleApp() {
     };
   }, []);
 
+  // Two-finger scroll anywhere on the bubble glides it across the screen
+  // (Arc-PiP style); click-drag still works via the CSS drag region.
+  const onWheel = (e: React.WheelEvent) => {
+    void window.pearloom.recui.bubbleMoveBy(e.deltaX, e.deltaY);
+  };
+
   return (
-    <div className="bubble-root">
-      <div className="bubble-face" title="Drag to move">
+    <div className="bubble-root" onWheel={onWheel}>
+      <div className="bubble-face" title="Drag or scroll to move">
         {cameraError ? (
           <div className="bubble-fallback">🎥</div>
         ) : (

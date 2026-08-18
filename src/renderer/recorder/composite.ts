@@ -26,6 +26,12 @@ export interface CompositorHandle {
   addClick: (fx: number, fy: number) => void;
   /** Move the burned-in red cursor dot ((x, y) in 0–1 fractions; null hides). */
   setCursor: (pos: { fx: number; fy: number } | null) => void;
+  /**
+   * Center of the camera bubble in 0–1 frame fractions, following the
+   * on-screen face bubble. null = default bottom-left. Well outside the
+   * frame = not on the recorded screen, so the bubble isn't drawn.
+   */
+  setBubblePos: (pos: { fx: number; fy: number } | null) => void;
 }
 
 const BUBBLE_RATIO = 0.22; // bubble diameter as a fraction of canvas height
@@ -66,6 +72,7 @@ export function startCompositor(opts: CompositorOptions): CompositorHandle {
   let stopped = false;
   const ripples: { fx: number; fy: number; t0: number }[] = [];
   let cursor: { fx: number; fy: number } | null = null;
+  let bubblePos: { fx: number; fy: number } | null = null;
 
   const draw = () => {
     if (stopped) return;
@@ -115,12 +122,23 @@ export function startCompositor(opts: CompositorOptions): CompositorHandle {
       ctx.fill();
     }
 
-    if (cameraVideo && cameraVideo.videoWidth) {
+    // Slightly past the frame edge still draws (partially visible bubble);
+    // far outside means it sits on another display — skip it entirely.
+    const bubbleOffscreen =
+      bubblePos !== null &&
+      (bubblePos.fx < -0.15 ||
+        bubblePos.fx > 1.15 ||
+        bubblePos.fy < -0.15 ||
+        bubblePos.fy > 1.15);
+
+    if (cameraVideo && cameraVideo.videoWidth && !bubbleOffscreen) {
       const d = Math.round(canvas.height * BUBBLE_RATIO);
-      const x = BUBBLE_MARGIN;
-      const y = canvas.height - d - BUBBLE_MARGIN;
-      const cx = x + d / 2;
-      const cy = y + d / 2;
+      const cx = bubblePos
+        ? bubblePos.fx * canvas.width
+        : BUBBLE_MARGIN + d / 2;
+      const cy = bubblePos
+        ? bubblePos.fy * canvas.height
+        : canvas.height - BUBBLE_MARGIN - d / 2;
 
       ctx.save();
       ctx.beginPath();
@@ -200,6 +218,9 @@ export function startCompositor(opts: CompositorOptions): CompositorHandle {
         pos && pos.fx >= 0 && pos.fx <= 1 && pos.fy >= 0 && pos.fy <= 1
           ? pos
           : null;
+    },
+    setBubblePos: (pos) => {
+      bubblePos = pos;
     },
     thumbnail: () => {
       try {

@@ -162,9 +162,29 @@ function openBubble(cameraDeviceId: string) {
     hash: `bubble?camera=${encodeURIComponent(cameraDeviceId)}`,
   });
   bubble.once("ready-to-show", () => bubble?.showInactive());
+  // Keep the composited camera bubble in the recording glued to wherever the
+  // user drags the on-screen bubble (the face circle center, in screen points).
+  bubble.on("move", () => {
+    const b = bubble?.getBounds();
+    if (!b) return;
+    deps?.getWindow()?.webContents.send("event:bubble-moved", {
+      x: b.x + b.width / 2,
+      y: b.y + BUBBLE_FACE_CENTER_Y,
+    });
+  });
   bubble.on("closed", () => {
     bubble = null;
   });
+}
+
+// Face circle center offset inside the bubble window (8px padding + 88px radius).
+const BUBBLE_FACE_CENTER_Y = 96;
+
+/** Nudge the bubble window (two-finger scroll over it). */
+export function bubbleMoveBy(dx: number, dy: number) {
+  if (!bubble || bubble.isDestroyed()) return;
+  const b = bubble.getBounds();
+  bubble.setBounds({ ...b, x: Math.round(b.x + dx), y: Math.round(b.y + dy) });
 }
 
 function closeBubble() {

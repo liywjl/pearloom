@@ -85,6 +85,7 @@ export function useRecorder(): RecorderApi {
     offClicks: (() => void) | null;
     offKeys: (() => void) | null;
     offCursor: (() => void) | null;
+    offBubbleMove: (() => void) | null;
     activity: ActivityEvent[];
   }>({
     compositor: null,
@@ -97,6 +98,7 @@ export function useRecorder(): RecorderApi {
     offClicks: null,
     offKeys: null,
     offCursor: null,
+    offBubbleMove: null,
     activity: [],
   });
 
@@ -189,6 +191,8 @@ export function useRecorder(): RecorderApi {
     session.current.offKeys = null;
     session.current.offCursor?.();
     session.current.offCursor = null;
+    session.current.offBubbleMove?.();
+    session.current.offBubbleMove = null;
     void window.pearloom.capture.clicksStop();
     void window.pearloom.capture.cursorStop();
   };
@@ -278,6 +282,19 @@ export function useRecorder(): RecorderApi {
       const bounds = source?.displayBounds ?? null;
       session.current.activity = [];
       const elapsed = () => Date.now() - session.current.startedAt;
+
+      // The composited camera bubble follows the on-screen face bubble
+      // (screens only — window sources have no bounds to map into).
+      if (bounds) {
+        session.current.offBubbleMove = window.pearloom.recui.onBubbleMoved(
+          (pos) => {
+            session.current.compositor?.setBubblePos({
+              fx: (pos.x - bounds.x) / bounds.width,
+              fy: (pos.y - bounds.y) / bounds.height,
+            });
+          },
+        );
+      }
 
       if (stateRef.current.showClicks && bounds) {
         const toFrame = (p: { x: number; y: number }) => ({

@@ -14,6 +14,7 @@ import {
   stopCursorTracking,
 } from "./capture";
 import {
+  bubbleMoveBy,
   closeQuickRec,
   recordingPaused,
   recordingStarted,
@@ -85,6 +86,9 @@ export function registerIpcHandlers({ recordings, p2p, getWindow }: Deps) {
   );
   ipcMain.handle("recui:request-toggle-pause", () =>
     getWindow()?.webContents.send("event:request-toggle-pause"),
+  );
+  ipcMain.handle("recui:bubble-move-by", (_e, dx: number, dy: number) =>
+    bubbleMoveBy(dx, dy),
   );
 
   // quick-record popover (tray) — start runs in the main window's renderer,

@@ -170,6 +170,14 @@ const api = {
       ipcRenderer.on("event:bubble-tick", wrapped);
       return () => ipcRenderer.removeListener("event:bubble-tick", wrapped);
     },
+    bubbleMoveBy: (dx: number, dy: number): Promise<void> =>
+      ipcRenderer.invoke("recui:bubble-move-by", dx, dy),
+    /** Face-circle center of the bubble window, in screen points. */
+    onBubbleMoved(handler: (pos: CursorPos) => void): () => void {
+      const wrapped = (_e: unknown, pos: CursorPos) => handler(pos);
+      ipcRenderer.on("event:bubble-moved", wrapped);
+      return () => ipcRenderer.removeListener("event:bubble-moved", wrapped);
+    },
   },
   /** Tray quick-record popover ↔ main window. */
   quickrec: {
