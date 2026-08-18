@@ -190,6 +190,13 @@ const api = {
       ipcRenderer.on("event:request-start", wrapped);
       return () => ipcRenderer.removeListener("event:request-start", wrapped);
     },
+    /** The persistent popover is being shown again — refetch sources. */
+    onRefresh(handler: () => void): () => void {
+      const wrapped = () => handler();
+      ipcRenderer.on("event:quickrec-refresh", wrapped);
+      return () =>
+        ipcRenderer.removeListener("event:quickrec-refresh", wrapped);
+    },
   },
   events: {
     on(

@@ -13,16 +13,27 @@ export function QuickRecApp() {
   const [mic, setMic] = useState(true);
 
   useEffect(() => {
-    void window.pearloom.capture.sources().then((sources) => {
-      const found = sources.filter((s) => s.kind === "screen");
-      setScreens(found);
-      setSelectedId(found[0]?.id ?? null);
-    });
+    const load = () =>
+      void window.pearloom.capture.sources().then((sources) => {
+        const found = sources.filter((s) => s.kind === "screen");
+        setScreens(found);
+        setSelectedId((prev) =>
+          prev && found.some((s) => s.id === prev)
+            ? prev
+            : (found[0]?.id ?? null),
+        );
+      });
+    load();
+    // The window stays alive between opens — refresh thumbnails on each show.
+    const offRefresh = window.pearloom.quickrec.onRefresh(load);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") void window.pearloom.quickrec.close();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      offRefresh();
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   return (

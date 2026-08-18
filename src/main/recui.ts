@@ -91,6 +91,7 @@ export function initRecordingUi(d: Deps) {
     else toggleQuickRec();
   });
   tray.on("right-click", () => tray?.popUpContextMenu(trayMenu()));
+  ensureQuickRec();
 }
 
 export function recordingStarted(cameraDeviceId: string | null) {
@@ -193,30 +194,26 @@ function closeBubble() {
 }
 
 function toggleQuickRec() {
-  if (quickRec && !quickRec.isDestroyed()) closeQuickRec();
-  else openQuickRec();
+  if (quickRec && !quickRec.isDestroyed() && quickRec.isVisible()) {
+    closeQuickRec();
+  } else {
+    openQuickRec();
+  }
 }
 
-/** Loom-style popover under the tray icon: pick a screen, hit record. */
-function openQuickRec() {
-  const width = 320;
-  const height = 420;
-  const trayBounds = tray?.getBounds();
-  const { workArea } = screen.getPrimaryDisplay();
-  const x = trayBounds
-    ? Math.round(
-        Math.min(
-          trayBounds.x + trayBounds.width / 2 - width / 2,
-          workArea.x + workArea.width - width - 8,
-        ),
-      )
-    : workArea.x + workArea.width - width - 8;
-  const y = trayBounds ? trayBounds.y + trayBounds.height + 6 : workArea.y + 8;
+const QUICKREC_W = 320;
+const QUICKREC_H = 420;
+
+/**
+ * The popover window is created hidden at startup and only shown/hidden
+ * afterwards, so tray clicks feel instant (no window creation + bundle load
+ * + thumbnail fetch on the click path).
+ */
+function ensureQuickRec(): BrowserWindow {
+  if (quickRec && !quickRec.isDestroyed()) return quickRec;
   quickRec = new BrowserWindow({
-    width,
-    height,
-    x,
-    y,
+    width: QUICKREC_W,
+    height: QUICKREC_H,
     frame: false,
     transparent: true,
     resizable: false,
@@ -234,21 +231,42 @@ function openQuickRec() {
   quickRec.loadFile(join(__dirname, "../renderer/index.html"), {
     hash: "quickrec",
   });
-  quickRec.once("ready-to-show", () => quickRec?.show());
   quickRec.on("blur", () => closeQuickRec());
   quickRec.on("closed", () => {
     quickRec = null;
   });
+  return quickRec;
+}
+
+/** Loom-style popover under the tray icon: pick a screen, hit record. */
+function openQuickRec() {
+  const win = ensureQuickRec();
+  const trayBounds = tray?.getBounds();
+  const { workArea } = screen.getPrimaryDisplay();
+  const x = trayBounds
+    ? Math.round(
+        Math.min(
+          trayBounds.x + trayBounds.width / 2 - QUICKREC_W / 2,
+          workArea.x + workArea.width - QUICKREC_W - 8,
+        ),
+      )
+    : workArea.x + workArea.width - QUICKREC_W - 8;
+  const y = trayBounds
+    ? trayBounds.y + trayBounds.height + 6
+    : workArea.y + 8;
+  win.setBounds({ x, y, width: QUICKREC_W, height: QUICKREC_H });
+  win.webContents.send("event:quickrec-refresh");
+  win.show();
 }
 
 export function closeQuickRec() {
-  if (quickRec && !quickRec.isDestroyed()) quickRec.close();
-  quickRec = null;
+  if (quickRec && !quickRec.isDestroyed()) quickRec.hide();
 }
 
 export function destroyRecordingUi() {
   closeBubble();
-  closeQuickRec();
+  if (quickRec && !quickRec.isDestroyed()) quickRec.destroy();
+  quickRec = null;
   tray?.destroy();
   tray = null;
 }
