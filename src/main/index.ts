@@ -1,5 +1,6 @@
 import { app, BrowserWindow, protocol } from "electron";
 import { join } from "node:path";
+import { updateElectronApp } from "update-electron-app";
 import { registerPearloomProtocol, PEARLOOM_SCHEME } from "./protocol";
 import { RecordingStore } from "./recordings";
 import { registerIpcHandlers } from "./ipc";
@@ -93,6 +94,12 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+}
+
+// Auto-update from GitHub Releases via update.electronjs.org (no-op in dev;
+// needs the signed builds our release workflow produces).
+if (app.isPackaged) {
+  updateElectronApp({ updateInterval: "1 hour" });
 }
 
 app.whenReady().then(async () => {

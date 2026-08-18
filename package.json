@@ -5,6 +5,7 @@
   "description": "P2P screen recording and feedback — a free, local-first Loom alternative built on the Pear stack",
   "main": "dist/main/index.js",
   "type": "commonjs",
+  "repository": "https://github.com/liywjl/pearloom",
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "npm run build && electron .",
@@ -41,6 +42,7 @@
     "react-dom": "^19.2.7",
     "serve-drive": "^5.2.0",
     "uiohook-napi": "^1.5.5",
+    "update-electron-app": "^3.3.0",
     "z32": "^1.1.0"
   }
 }
