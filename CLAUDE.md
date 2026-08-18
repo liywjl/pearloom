@@ -27,6 +27,9 @@ P2P Loom alternative: Electron + TypeScript + the Pear/Holepunch stack. See READ
 - Likes/reactions are keyed by `node.from.key` inside `apply` (the signing writer), not by a value field — prevents spoofed/duplicate likes. Unlike = `view.del` in apply.
 - Corestore takes an exclusive file lock: `app.requestSingleInstanceLock()` guards against double launch ("File descriptor could not be locked").
 - Recording-time desktop UI lives in src/main/recui.ts: tray (empty nativeImage + emoji title works on macOS), window hides on record (close is intercepted while recording — the renderer owns the live MediaRecorder), and the face bubble is a second BrowserWindow loading the same bundle with `#bubble?camera=<id>` (main.tsx branches on the hash). The bubble MUST keep `setContentProtection(true)` or faces appear twice in recordings.
+- Tray left-click (idle) opens the quick-record popover — a third window on the same bundle (`#quickrec`, QuickRecApp.tsx). It only forwards `{sourceId, camera, mic}` over `quickrec:start` → `event:request-start`; the recording always starts in the main window's renderer (App owns useRecorder). Recording state gates the tray click to the controls menu instead.
+- Pause/resume: MediaRecorder pause() natively; useRecorder shifts `startedAt` forward on resume so `Date.now() - startedAt` stays the recorded duration everywhere (activity track suppressed while paused).
+- Auto-update: update-electron-app + update.electronjs.org (needs the `repository` field in package.json and signed builds; no-op in dev and unsigned packages).
 
 ## Conventions
 

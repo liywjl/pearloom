@@ -1,7 +1,7 @@
 {
   "name": "pearloom",
   "productName": "Pearloom",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "P2P screen recording and feedback — a free, local-first Loom alternative built on the Pear stack",
   "main": "dist/main/index.js",
   "type": "commonjs",
