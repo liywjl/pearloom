@@ -42,9 +42,15 @@ export function App() {
     if (recorder.phase === "recording" && was !== "recording") {
       void window.pearloom.recui.started(recorder.selectedCameraId);
     }
+    if (recorder.phase === "paused" && was === "recording") {
+      void window.pearloom.recui.setPaused(true);
+    }
+    if (recorder.phase === "recording" && was === "paused") {
+      void window.pearloom.recui.setPaused(false);
+    }
     if (
       recorder.phase === "idle" &&
-      (was === "recording" || was === "saving")
+      (was === "recording" || was === "paused" || was === "saving")
     ) {
       void window.pearloom.recui.stopped();
     }
@@ -58,10 +64,10 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsedSec, recorder.phase]);
 
-  // Stop requests from the menu bar / face bubble.
+  // Stop / pause requests from the menu bar / face bubble.
   const stopRef = React.useRef<() => void>(() => {});
   stopRef.current = async () => {
-    if (recorder.phase !== "recording") return;
+    if (recorder.phase !== "recording" && recorder.phase !== "paused") return;
     const rec = await recorder.stop();
     if (rec) {
       await refreshRecordings();
@@ -72,10 +78,23 @@ export function App() {
       });
     }
   };
-  useEffect(
-    () => window.pearloom.recui.onRequestStop(() => void stopRef.current()),
-    [],
-  );
+  const togglePauseRef = React.useRef<() => void>(() => {});
+  togglePauseRef.current = () => {
+    if (recorder.phase === "recording") recorder.pause();
+    else if (recorder.phase === "paused") recorder.resume();
+  };
+  useEffect(() => {
+    const offStop = window.pearloom.recui.onRequestStop(
+      () => void stopRef.current(),
+    );
+    const offPause = window.pearloom.recui.onRequestTogglePause(() =>
+      togglePauseRef.current(),
+    );
+    return () => {
+      offStop();
+      offPause();
+    };
+  }, []);
 
   const refreshSpaces = useCallback(async () => {
     setSpaces(await window.pearloom.spaces.list());
@@ -172,10 +191,12 @@ export function App() {
       </main>
 
       {/* Recording continues across views — surface it wherever the user is. */}
-      {(recorder.phase === "recording" || recorder.phase === "saving") &&
+      {(recorder.phase === "recording" ||
+        recorder.phase === "paused" ||
+        recorder.phase === "saving") &&
         route.view !== "record" && (
           <div className="floating-hud">
-            <span className="rec-dot" />
+            <span className={recorder.phase === "paused" ? "pause-dot" : "rec-dot"} />
             <span className="floating-hud-time">
               {recorder.phase === "saving"
                 ? "Saving…"
@@ -188,8 +209,15 @@ export function App() {
               View
             </button>
             <button
+              className="btn small ghost"
+              disabled={recorder.phase === "saving"}
+              onClick={() => togglePauseRef.current()}
+            >
+              {recorder.phase === "paused" ? "▶ Resume" : "⏸ Pause"}
+            </button>
+            <button
               className="btn small danger"
-              disabled={recorder.phase !== "recording"}
+              disabled={recorder.phase === "saving"}
               onClick={async () => {
                 const rec = await recorder.stop();
                 if (rec) {

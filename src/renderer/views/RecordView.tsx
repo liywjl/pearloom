@@ -57,21 +57,34 @@ export function RecordView({ recorder: rec, onSaved }: Props) {
 
   if (
     rec.phase === "recording" ||
+    rec.phase === "paused" ||
     rec.phase === "saving" ||
     rec.phase === "starting"
   ) {
+    const hudLabel = () => {
+      if (rec.phase === "saving") return "Saving…";
+      if (rec.phase === "starting") return "Starting…";
+      if (rec.phase === "paused")
+        return `Paused · ${formatDuration(rec.elapsedMs)}`;
+      return formatDuration(rec.elapsedMs);
+    };
     return (
       <div className="record-live">
         <div className="record-hud">
-          <span className="rec-dot" />
-          {rec.phase === "recording"
-            ? formatDuration(rec.elapsedMs)
-            : rec.phase === "saving"
-              ? "Saving…"
-              : "Starting…"}
+          <span className={rec.phase === "paused" ? "pause-dot" : "rec-dot"} />
+          {hudLabel()}
+          <button
+            className="btn ghost"
+            disabled={rec.phase !== "recording" && rec.phase !== "paused"}
+            onClick={() =>
+              rec.phase === "paused" ? rec.resume() : rec.pause()
+            }
+          >
+            {rec.phase === "paused" ? "▶ Resume" : "⏸ Pause"}
+          </button>
           <button
             className="btn danger"
-            disabled={rec.phase !== "recording"}
+            disabled={rec.phase !== "recording" && rec.phase !== "paused"}
             onClick={async () => {
               const meta = await rec.stop();
               if (meta) onSaved(meta);

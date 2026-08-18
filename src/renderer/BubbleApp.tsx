@@ -9,6 +9,7 @@ import { formatDuration } from "./lib/format";
 export function BubbleApp() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [paused, setPaused] = useState(false);
   const [cameraError, setCameraError] = useState(false);
 
   useEffect(() => {
@@ -34,10 +35,12 @@ export function BubbleApp() {
     };
     void start();
     const offTick = window.pearloom.recui.onBubbleTick(setElapsedMs);
+    const offPaused = window.pearloom.recui.onBubblePaused(setPaused);
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((t) => t.stop());
       offTick();
+      offPaused();
     };
   }, []);
 
@@ -53,9 +56,16 @@ export function BubbleApp() {
       </div>
       <div className="bubble-controls">
         <span className="bubble-timer">
-          <span className="rec-dot" />
+          <span className={paused ? "pause-dot" : "rec-dot"} />
           {formatDuration(elapsedMs)}
         </span>
+        <button
+          className="bubble-stop"
+          title={paused ? "Resume recording" : "Pause recording"}
+          onClick={() => void window.pearloom.recui.requestTogglePause()}
+        >
+          {paused ? "▶" : "⏸"}
+        </button>
         <button
           className="bubble-stop"
           title="Stop recording"

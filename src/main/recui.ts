@@ -27,6 +27,8 @@ let deps: Deps | null = null;
 let tray: Tray | null = null;
 let bubble: BrowserWindow | null = null;
 let recording = false;
+let paused = false;
+let lastElapsedMs = 0;
 
 function formatElapsed(ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
@@ -37,6 +39,10 @@ function formatElapsed(ms: number): string {
 
 function requestStop() {
   deps?.getWindow()?.webContents.send("event:request-stop");
+}
+
+function requestTogglePause() {
+  deps?.getWindow()?.webContents.send("event:request-toggle-pause");
 }
 
 function showApp() {
@@ -53,6 +59,10 @@ function refreshTrayMenu() {
     Menu.buildFromTemplate(
       recording
         ? [
+            {
+              label: paused ? "▶ Resume recording" : "⏸ Pause recording",
+              click: requestTogglePause,
+            },
             { label: "■ Stop recording", click: requestStop },
             { label: "Show Pearloom", click: showApp },
           ]
@@ -80,6 +90,8 @@ export function initRecordingUi(d: Deps) {
 
 export function recordingStarted(cameraDeviceId: string | null) {
   recording = true;
+  paused = false;
+  lastElapsedMs = 0;
   tray?.setTitle("🔴 0:00");
   refreshTrayMenu();
   deps?.getWindow()?.hide();
@@ -88,13 +100,25 @@ export function recordingStarted(cameraDeviceId: string | null) {
 
 export function recordingTick(elapsedMs: number) {
   if (!recording) return;
-  tray?.setTitle(`🔴 ${formatElapsed(elapsedMs)}`);
+  lastElapsedMs = elapsedMs;
+  if (!paused) tray?.setTitle(`🔴 ${formatElapsed(elapsedMs)}`);
   bubble?.webContents.send("event:bubble-tick", elapsedMs);
+}
+
+export function recordingPaused(isPaused: boolean) {
+  if (!recording) return;
+  paused = isPaused;
+  tray?.setTitle(
+    `${paused ? "⏸" : "🔴"} ${formatElapsed(lastElapsedMs)}`,
+  );
+  refreshTrayMenu();
+  bubble?.webContents.send("event:bubble-paused", paused);
 }
 
 export function recordingStopped() {
   if (!recording) return;
   recording = false;
+  paused = false;
   tray?.setTitle("🟣");
   refreshTrayMenu();
   closeBubble();

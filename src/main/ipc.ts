@@ -13,7 +13,12 @@ import {
   stopClickCapture,
   stopCursorTracking,
 } from "./capture";
-import { recordingStarted, recordingStopped, recordingTick } from "./recui";
+import {
+  recordingPaused,
+  recordingStarted,
+  recordingStopped,
+  recordingTick,
+} from "./recui";
 import type {
   FinalizeRecordingInput,
   MediaAccessKind,
@@ -68,9 +73,15 @@ export function registerIpcHandlers({ recordings, p2p, getWindow }: Deps) {
     recordingTick(elapsedMs),
   );
   ipcMain.handle("recui:stopped", () => recordingStopped());
+  ipcMain.handle("recui:set-paused", (_e, paused: boolean) =>
+    recordingPaused(paused),
+  );
   // Sent from the bubble window; routed to the main window's recorder.
   ipcMain.handle("recui:request-stop", () =>
     getWindow()?.webContents.send("event:request-stop"),
+  );
+  ipcMain.handle("recui:request-toggle-pause", () =>
+    getWindow()?.webContents.send("event:request-toggle-pause"),
   );
 
   // local recordings

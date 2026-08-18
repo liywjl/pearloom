@@ -16,6 +16,8 @@ export interface CompositorHandle {
   /** Live preview stream (what is being recorded). */
   previewStream: MediaStream;
   stop: () => void;
+  pause: () => void;
+  resume: () => void;
   /** Resolves after the recorder has emitted its final chunk. */
   stopped: Promise<void>;
   /** Grab a small JPEG thumbnail of the current frame. */
@@ -213,6 +215,12 @@ export function startCompositor(opts: CompositorOptions): CompositorHandle {
     },
     stop: () => {
       if (recorder.state !== "inactive") recorder.stop();
+    },
+    pause: () => {
+      if (recorder.state === "recording") recorder.pause();
+    },
+    resume: () => {
+      if (recorder.state === "paused") recorder.resume();
     },
   };
 }

@@ -15,7 +15,12 @@ export interface DeviceChoice {
   label: string;
 }
 
-export type RecorderPhase = "idle" | "starting" | "recording" | "saving";
+export type RecorderPhase =
+  | "idle"
+  | "starting"
+  | "recording"
+  | "paused"
+  | "saving";
 
 export interface RecorderState {
   phase: RecorderPhase;
@@ -41,6 +46,8 @@ export interface RecorderApi extends RecorderState {
   selectMic: (id: string | null) => void;
   setShowClicks: (on: boolean) => Promise<void>;
   start: () => Promise<void>;
+  pause: () => void;
+  resume: () => void;
   stop: () => Promise<RecordingMeta | null>;
 }
 
@@ -64,6 +71,7 @@ export function useRecorder(): RecorderApi {
     compositor: CompositorHandle | null;
     recordingId: string | null;
     startedAt: number;
+    pausedAt: number | null;
     streams: MediaStream[];
     pendingChunks: Promise<void>;
     timer: ReturnType<typeof setInterval> | null;
@@ -75,6 +83,7 @@ export function useRecorder(): RecorderApi {
     compositor: null,
     recordingId: null,
     startedAt: 0,
+    pausedAt: null,
     streams: [],
     pendingChunks: Promise.resolve(),
     timer: null,
@@ -89,6 +98,7 @@ export function useRecorder(): RecorderApi {
   const MAX_ACTIVITY_EVENTS = 4000;
   const TYPING_GAP_MS = 1500;
   const pushActivity = (event: ActivityEvent) => {
+    if (session.current.pausedAt !== null) return;
     const track = session.current.activity;
     if (event.kind === "typing") {
       const last = track[track.length - 1];
@@ -304,14 +314,43 @@ export function useRecorder(): RecorderApi {
     }
   }, []);
 
+  // Pausing shifts startedAt forward on resume, so "Date.now() - startedAt"
+  // stays the recorded duration (paused stretches excluded) everywhere.
+  const pause = useCallback(() => {
+    if (stateRef.current.phase !== "recording") return;
+    session.current.compositor?.pause();
+    session.current.pausedAt = Date.now();
+    if (session.current.timer) clearInterval(session.current.timer);
+    session.current.timer = null;
+    patch({ phase: "paused" });
+  }, []);
+
+  const resume = useCallback(() => {
+    if (stateRef.current.phase !== "paused") return;
+    const { pausedAt } = session.current;
+    if (pausedAt !== null) session.current.startedAt += Date.now() - pausedAt;
+    session.current.pausedAt = null;
+    session.current.compositor?.resume();
+    session.current.timer = setInterval(() => {
+      patch({ elapsedMs: Date.now() - session.current.startedAt });
+    }, 250);
+    patch({ phase: "recording" });
+  }, []);
+
   const stop = useCallback(async (): Promise<RecordingMeta | null> => {
-    const { compositor, recordingId, startedAt } = session.current;
-    if (!compositor || !recordingId || stateRef.current.phase !== "recording")
+    const { compositor, recordingId, startedAt, pausedAt } = session.current;
+    const phase = stateRef.current.phase;
+    if (
+      !compositor ||
+      !recordingId ||
+      (phase !== "recording" && phase !== "paused")
+    )
       return null;
     patch({ phase: "saving" });
 
     const thumbnail = compositor.thumbnail();
-    const durationMs = Date.now() - startedAt;
+    const durationMs = (pausedAt ?? Date.now()) - startedAt;
+    session.current.pausedAt = null;
 
     compositor.stop();
     // Wait for the final chunk (bounded, in case onstop never fires).
@@ -359,6 +398,8 @@ export function useRecorder(): RecorderApi {
     selectMic: (id) => patch({ selectedMicId: id }),
     setShowClicks,
     start,
+    pause,
+    resume,
     stop,
   };
 }

@@ -143,11 +143,26 @@ const api = {
     tick: (elapsedMs: number): Promise<void> =>
       ipcRenderer.invoke("recui:tick", elapsedMs),
     stopped: (): Promise<void> => ipcRenderer.invoke("recui:stopped"),
+    setPaused: (paused: boolean): Promise<void> =>
+      ipcRenderer.invoke("recui:set-paused", paused),
     requestStop: (): Promise<void> => ipcRenderer.invoke("recui:request-stop"),
+    requestTogglePause: (): Promise<void> =>
+      ipcRenderer.invoke("recui:request-toggle-pause"),
     onRequestStop(handler: () => void): () => void {
       const wrapped = () => handler();
       ipcRenderer.on("event:request-stop", wrapped);
       return () => ipcRenderer.removeListener("event:request-stop", wrapped);
+    },
+    onRequestTogglePause(handler: () => void): () => void {
+      const wrapped = () => handler();
+      ipcRenderer.on("event:request-toggle-pause", wrapped);
+      return () =>
+        ipcRenderer.removeListener("event:request-toggle-pause", wrapped);
+    },
+    onBubblePaused(handler: (paused: boolean) => void): () => void {
+      const wrapped = (_e: unknown, paused: boolean) => handler(paused);
+      ipcRenderer.on("event:bubble-paused", wrapped);
+      return () => ipcRenderer.removeListener("event:bubble-paused", wrapped);
     },
     onBubbleTick(handler: (elapsedMs: number) => void): () => void {
       const wrapped = (_e: unknown, ms: number) => handler(ms);
