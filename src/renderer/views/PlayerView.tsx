@@ -49,6 +49,7 @@ export function PlayerView({ target, onBack }: Props) {
   const [shareOpen, setShareOpen] = useState(false);
   const [invite, setInvite] = useState<string | null>(null);
   const [currentMs, setCurrentMs] = useState(0);
+  const [aspect, setAspect] = useState<number | null>(null);
   const [pendingSection, setPendingSection] = useState<SectionRange | null>(
     null,
   );
@@ -219,23 +220,37 @@ export function PlayerView({ target, onBack }: Props) {
 
       <div className="player-layout with-comments">
         <div className="player-stage">
-          {src && (
-            <video
-              ref={videoRef}
-              src={src}
-              controls
-              autoPlay
-              onLoadedMetadata={fixDuration}
-              onTimeUpdate={() => setCurrentMs(currentTimeMs())}
-              onError={() =>
-                setError(
-                  shared && !shared.mine
-                    ? "Could not stream this recording yet. The owner (or another peer with a copy) must be online."
-                    : "Could not play this recording.",
-                )
-              }
-            />
-          )}
+          {/* Fixed-ratio frame: reserved at 16:9, settled to the video's real
+              aspect once known — no layout jumps between differently sized
+              recordings; mismatches letterbox inside instead. */}
+          <div
+            className="video-frame"
+            style={{ aspectRatio: aspect ?? 16 / 9 }}
+          >
+            {src && (
+              <video
+                ref={videoRef}
+                src={src}
+                controls
+                autoPlay
+                onLoadedMetadata={() => {
+                  fixDuration();
+                  const v = videoRef.current;
+                  if (v?.videoWidth && v.videoHeight) {
+                    setAspect(v.videoWidth / v.videoHeight);
+                  }
+                }}
+                onTimeUpdate={() => setCurrentMs(currentTimeMs())}
+                onError={() =>
+                  setError(
+                    shared && !shared.mine
+                      ? "Could not stream this recording yet. The owner (or another peer with a copy) must be online."
+                      : "Could not play this recording.",
+                  )
+                }
+              />
+            )}
+          </div>
 
           <Timeline
             durationMs={durationMs}
@@ -404,9 +419,22 @@ function Timeline(props: {
   const [drag, setDrag] = useState<{ startFx: number; curFx: number } | null>(
     null,
   );
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const pct = (ms: number) => `${Math.min(99.4, (ms / dur) * 100)}%`;
   const anchored = props.comments.filter((c) => c.atMs !== null);
+
+  // SoundCloud-style: a comment surfaces on its own while playback passes it
+  // (its section, or a few seconds for point comments); hovering a chip wins.
+  const ACTIVE_WINDOW_MS = 4000;
+  const hovered = anchored.find((c) => c.id === hoveredId) ?? null;
+  const playing = anchored
+    .filter((c) => {
+      const end = c.endMs ?? c.atMs! + ACTIVE_WINDOW_MS;
+      return props.currentMs >= c.atMs! && props.currentMs <= end;
+    })
+    .sort((a, b) => b.atMs! - a.atMs!)[0];
+  const active = hovered ?? playing ?? null;
   const clicks = props.activity.filter((a) => a.kind === "click");
   const typing = props.activity.filter((a) => a.kind === "typing");
 
@@ -503,6 +531,27 @@ function Timeline(props: {
         />
       </div>
 
+      {/* the surfaced comment, floating above the timeline */}
+      {active && (
+        <div
+          className="timeline-callout"
+          style={{
+            left: `clamp(110px, ${pct(active.atMs!)}, calc(100% - 110px))`,
+          }}
+        >
+          <span className="avatar small">
+            {active.author.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="timeline-callout-body">
+            <div className="timeline-callout-head">
+              <strong>{active.author}</strong>
+              <span className="muted">{formatDuration(active.atMs!)}</span>
+            </div>
+            <p>{active.text}</p>
+          </div>
+        </div>
+      )}
+
       {/* markers overlay (above the hit area so they stay clickable) */}
       {anchored.map((c) => (
         <React.Fragment key={c.id}>
@@ -514,15 +563,21 @@ function Timeline(props: {
                 width: `calc(${((c.endMs - c.atMs!) / dur) * 100}% + 2px)`,
               }}
               onClick={() => props.onSeek(c.atMs!)}
-              title={`${c.author}: ${c.text}`}
+              onMouseEnter={() => setHoveredId(c.id)}
+              onMouseLeave={() =>
+                setHoveredId((id) => (id === c.id ? null : id))
+              }
             />
           )}
           <button
-            className="timeline-marker comment-marker"
+            className={`comment-chip${active?.id === c.id ? " active" : ""}`}
             style={{ left: pct(c.atMs!) }}
             onClick={() => props.onSeek(c.atMs!)}
-            title={`${c.author} at ${formatDuration(c.atMs!)}: ${c.text}`}
-          />
+            onMouseEnter={() => setHoveredId(c.id)}
+            onMouseLeave={() => setHoveredId((id) => (id === c.id ? null : id))}
+          >
+            {c.author.slice(0, 1).toUpperCase()}
+          </button>
         </React.Fragment>
       ))}
       {props.reactions.map((r) => (

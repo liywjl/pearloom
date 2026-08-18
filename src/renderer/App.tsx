@@ -211,7 +211,9 @@ export function App() {
         recorder.phase === "saving") &&
         route.view !== "record" && (
           <div className="floating-hud">
-            <span className={recorder.phase === "paused" ? "pause-dot" : "rec-dot"} />
+            <span
+              className={recorder.phase === "paused" ? "pause-dot" : "rec-dot"}
+            />
             <span className="floating-hud-time">
               {recorder.phase === "saving"
                 ? "Saving…"

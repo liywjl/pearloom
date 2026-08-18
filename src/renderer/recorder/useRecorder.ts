@@ -16,11 +16,7 @@ export interface DeviceChoice {
 }
 
 export type RecorderPhase =
-  | "idle"
-  | "starting"
-  | "recording"
-  | "paused"
-  | "saving";
+  "idle" | "starting" | "recording" | "paused" | "saving";
 
 export interface RecorderState {
   phase: RecorderPhase;

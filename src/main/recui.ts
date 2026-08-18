@@ -114,9 +114,7 @@ export function recordingTick(elapsedMs: number) {
 export function recordingPaused(isPaused: boolean) {
   if (!recording) return;
   paused = isPaused;
-  tray?.setTitle(
-    `${paused ? "⏸" : "🔴"} ${formatElapsed(lastElapsedMs)}`,
-  );
+  tray?.setTitle(`${paused ? "⏸" : "🔴"} ${formatElapsed(lastElapsedMs)}`);
   bubble?.webContents.send("event:bubble-paused", paused);
 }
 
@@ -251,9 +249,7 @@ function openQuickRec() {
         ),
       )
     : workArea.x + workArea.width - QUICKREC_W - 8;
-  const y = trayBounds
-    ? trayBounds.y + trayBounds.height + 6
-    : workArea.y + 8;
+  const y = trayBounds ? trayBounds.y + trayBounds.height + 6 : workArea.y + 8;
   win.setBounds({ x, y, width: QUICKREC_W, height: QUICKREC_H });
   win.webContents.send("event:quickrec-refresh");
   win.show();
