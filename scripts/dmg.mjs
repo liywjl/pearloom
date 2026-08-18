@@ -39,7 +39,9 @@ try {
   }
   symlinkSync("/Applications", join(staging, "Applications"));
   rmSync(dmgPath, { force: true });
-  run("hdiutil", [
+  // hdiutil intermittently fails with "Resource busy" on CI (a race with
+  // macOS's disk-image daemon) — retry like electron-builder does.
+  const hdiutilArgs = [
     "create",
     "-volname",
     "Pearloom",
@@ -48,7 +50,17 @@ try {
     "-format",
     "UDZO",
     dmgPath,
-  ]);
+  ];
+  for (let attempt = 1; ; attempt++) {
+    try {
+      run("hdiutil", hdiutilArgs);
+      break;
+    } catch (err) {
+      if (attempt >= 5) throw err;
+      console.warn(`hdiutil create failed (attempt ${attempt}/5), retrying…`);
+      execFileSync("sleep", ["3"]);
+    }
+  }
 } finally {
   rmSync(staging, { recursive: true, force: true });
 }
