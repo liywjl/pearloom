@@ -13,7 +13,7 @@ Record your screen with a camera bubble and narration, keep everything **local**
 
 ## Download
 
-Grab the newest zip from [Releases](https://github.com/liywjl/pearloom/releases) — `mac-arm64` for Apple Silicon, `mac-x64` for Intel — unzip, and drag `Pearloom.app` into Applications. Each release's notes say whether that build is signed & notarized; unsigned builds need one command after unzipping (`xattr -dr com.apple.quarantine Pearloom.app`) or just build from source (four commands, below).
+Grab the newest `.dmg` from [Releases](https://github.com/liywjl/pearloom/releases) — `mac-arm64` for Apple Silicon, `mac-x64` for Intel — open it, and drag Pearloom into Applications (a plain zip is published alongside if you prefer). Each release's notes say whether that build is signed & notarized; unsigned builds need one command after installing (`xattr -dr com.apple.quarantine Pearloom.app`) or just build from source (four commands, below).
 
 ## Features
 

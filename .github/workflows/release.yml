@@ -59,10 +59,17 @@ jobs:
             "out/Pearloom-darwin-${{ matrix.arch }}/Pearloom.app" \
             "Pearloom-${{ github.ref_name }}-mac-${{ matrix.arch }}.zip"
 
+      - name: Build DMG
+        run: |
+          node scripts/dmg.mjs --arch=${{ matrix.arch }} \
+            "--out=Pearloom-${{ github.ref_name }}-mac-${{ matrix.arch }}.dmg"
+
       - uses: actions/upload-artifact@v4
         with:
           name: pearloom-${{ matrix.arch }}
-          path: Pearloom-*.zip
+          path: |
+            Pearloom-*.zip
+            Pearloom-*.dmg
 
   release:
     name: Publish release
@@ -80,13 +87,13 @@ jobs:
           {
             echo "## Downloads"
             echo ""
-            echo "| Mac | File |"
-            echo "| --- | --- |"
-            echo "| Apple Silicon (M1 and later) | \`Pearloom-${{ github.ref_name }}-mac-arm64.zip\` |"
-            echo "| Intel | \`Pearloom-${{ github.ref_name }}-mac-x64.zip\` |"
+            echo "| Mac | Installer | Zip |"
+            echo "| --- | --- | --- |"
+            echo "| Apple Silicon (M1 and later) | \`Pearloom-${{ github.ref_name }}-mac-arm64.dmg\` | \`Pearloom-${{ github.ref_name }}-mac-arm64.zip\` |"
+            echo "| Intel | \`Pearloom-${{ github.ref_name }}-mac-x64.dmg\` | \`Pearloom-${{ github.ref_name }}-mac-x64.zip\` |"
             echo ""
             if [ "$SIGNED" = "true" ]; then
-              echo "Builds are signed and notarized — unzip and drag Pearloom.app into Applications."
+              echo "Builds are signed and notarized. Open the DMG and drag Pearloom into Applications."
             else
               echo "> [!IMPORTANT]"
               echo "> These builds are **unsigned**, so Gatekeeper will refuse to open them after download."
@@ -103,4 +110,4 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "Pearloom ${{ github.ref_name }}" \
             --notes-file notes.md \
-            Pearloom-*.zip
+            Pearloom-*.zip Pearloom-*.dmg
